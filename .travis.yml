@@ -29,6 +29,6 @@ before_install:
   - cd build
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo "SUCCESS"
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo "SUCCESS"; fi
 #
 #EOF
