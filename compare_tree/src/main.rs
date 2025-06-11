@@ -11,7 +11,7 @@ fn main() {
         process::exit(-1);
     }
 
-    let configuration = parse_arguments(&args);
+    let configuration = Config::new(&args);
     println!("Reference path {}", configuration.reference_path);
     println!("Other path {}", configuration.other_path);
 }
@@ -21,8 +21,10 @@ struct Config {
     other_path: String
 }
 
-fn parse_arguments(args: &[String]) -> Config {
-    let reference_path = args[1].clone();
-    let other_path = args[2].clone();
-    Config {reference_path, other_path}
+impl Config {
+    fn new(args: &[String]) -> Config {
+        let reference_path = args[1].clone();
+        let other_path = args[2].clone();
+        Config {reference_path, other_path}
+    }
 }
