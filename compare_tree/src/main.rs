@@ -6,12 +6,11 @@ fn main() {
     let args: Vec<String> = args().collect();
     dbg!(&args);
 
-    if args.len() < 3 {
-        println!("Waiting for 2 arguments");
-        process::exit(-1);
-    }
 
-    let configuration = Config::new(&args);
+    let configuration = Config::build(&args).unwrap_or_else(|err| {
+        println!("Error when parsing aguments : {err}");
+        process::exit(-1);
+    });
     println!("Reference path {}", configuration.reference_path);
     println!("Other path {}", configuration.other_path);
 }
@@ -22,9 +21,12 @@ struct Config {
 }
 
 impl Config {
-    fn new(args: &[String]) -> Config {
+    fn build(args: &[String]) -> Result<Config, & 'static str> {
+        if args.len() < 3 {
+            return Err("Waiting for 2 arguments not {args.len()}");
+        }
         let reference_path = args[1].clone();
         let other_path = args[2].clone();
-        Config {reference_path, other_path}
+        Ok(Config {reference_path, other_path})
     }
 }
