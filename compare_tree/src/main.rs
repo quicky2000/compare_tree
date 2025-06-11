@@ -11,13 +11,18 @@ fn main() {
         process::exit(-1);
     }
 
-    let (reference_path, other_path) = parse_arguments(&args);
-    println!("Reference path {reference_path}");
-    println!("Other path {other_path}");
+    let configuration = parse_arguments(&args);
+    println!("Reference path {}", configuration.reference_path);
+    println!("Other path {}", configuration.other_path);
 }
 
-fn parse_arguments(args: &[String]) -> (&String, &String) {
-    let reference_path = &args[1];
-    let other_path = &args[2];
-    (reference_path, other_path)
+struct Config {
+    reference_path: String,
+    other_path: String
+}
+
+fn parse_arguments(args: &[String]) -> Config {
+    let reference_path = args[1].clone();
+    let other_path = args[2].clone();
+    Config {reference_path, other_path}
 }
