@@ -10,4 +10,9 @@ fn main() {
         println!("Waiting for 2 arguments");
         process::exit(-1);
     }
+
+    let reference_path = &args[1];
+    let other_path = &args[2];
+    println!("Reference path {reference_path}");
+    println!("Other path {other_path}");
 }
