@@ -1,5 +1,6 @@
 use std::env::args;
 use std::process;
+use std::error::Error;
 
 fn main() {
     println!("Hello, world!");
@@ -11,8 +12,17 @@ fn main() {
         println!("Error when parsing aguments : {err}");
         process::exit(-1);
     });
+
+    if let Err(error) = run(&configuration) {
+        println!("Error occurr {error}");
+        process::exit(-1);
+    }
+}
+
+fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     println!("Reference path {}", configuration.reference_path);
     println!("Other path {}", configuration.other_path);
+    Ok(())
 }
 
 struct Config {
