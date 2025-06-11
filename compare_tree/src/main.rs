@@ -11,8 +11,13 @@ fn main() {
         process::exit(-1);
     }
 
-    let reference_path = &args[1];
-    let other_path = &args[2];
+    let (reference_path, other_path) = parse_arguments(&args);
     println!("Reference path {reference_path}");
     println!("Other path {other_path}");
+}
+
+fn parse_arguments(args: &[String]) -> (&String, &String) {
+    let reference_path = &args[1];
+    let other_path = &args[2];
+    (reference_path, other_path)
 }
