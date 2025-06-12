@@ -9,12 +9,12 @@ fn main() {
 
 
     let configuration = Config::build(&args).unwrap_or_else(|err| {
-        println!("Error when parsing aguments : {err}");
+        eprintln!("Error when parsing aguments : {err}");
         process::exit(-1);
     });
 
     if let Err(error) = compare_tree::run(&configuration) {
-        println!("Error occurr {error}");
+        eprintln!("Error occurr {error}");
         process::exit(-1);
     }
 }
