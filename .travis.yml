@@ -2,7 +2,7 @@ matrix:
   include:
     - os: linux
       sudo: required
-      dist: bionic
+      dist: noble
       compiler: gcc
 #    - os: osx
 
