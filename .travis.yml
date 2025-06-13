@@ -9,6 +9,13 @@ matrix:
 language: cpp
 
 before_install:
+# Rust tool chain installation
+#-----------------------------
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rust_install.sh ; chmod +x rust_install.sh ; ./rust_install.sh -y ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then . "$HOME/.cargo/env" ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then rustup toolchain install stable; fi
+# End of Rust tool chain installation
+#-----------------------------
   - MY_LOCATION=`pwd`
   - echo $MY_LOCATION
   - mkdir ../repositories
@@ -29,6 +36,8 @@ before_install:
   - cd build
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo "SUCCESS"; fi
+  - cd $QUICKY_REPOSITORY/compare_tree/compare_tree
+  - cargo build
+  - cargo test
 #
 #EOF
