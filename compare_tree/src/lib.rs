@@ -14,12 +14,17 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn build(args: &[String]) -> Result<Config, & 'static str> {
-        if args.len() < 3 {
-            return Err("Waiting for 2 arguments not {args.len()}");
-        }
-        let reference_path = args[1].clone();
-        let other_path = args[2].clone();
+    pub fn build(mut args: impl Iterator <Item = String>) -> Result<Config, & 'static str> {
+        // Ignore command name
+        args.next();
+        let reference_path = match args.next() {
+            Some(value) => value,
+            None => return Err("No reference path provided")
+        };
+        let other_path = match args.next() {
+            Some(value) => value,
+            None => return Err("No other path provided")
+        };
         Ok(Config {reference_path, other_path})
     }
 }
@@ -30,17 +35,17 @@ mod test {
 
     #[test]
     fn test_parse() {
-        let args = ["command".to_string(), "reference".to_string(), "other".to_string()];
+        let args: [String; 3] = [String::from("command"), String::from("reference"), String::from("other")];
         let ref_config = Config {
             reference_path: "reference".to_string(),
             other_path: "other".to_string()
         };
-        let result = Config::build(&args).unwrap();
+        let result = Config::build(args.into_iter()).unwrap();
         assert_eq!(ref_config, result);
     }
     #[test]
     fn test_parse_fail() {
-        let args = ["reference".to_string(), "other".to_string()];
-        assert!(Config::build(&args).is_err());
+        let args = vec!["reference".to_string(), "other".to_string()];
+        assert!(Config::build(args.into_iter()).is_err());
     }
 }

@@ -4,11 +4,11 @@ use compare_tree::Config;
 
 fn main() {
     println!("Hello, world!");
-    let args: Vec<String> = args().collect();
+    let args = args();
     dbg!(&args);
 
 
-    let configuration = Config::build(&args).unwrap_or_else(|err| {
+    let configuration = Config::build(args).unwrap_or_else(|err| {
         eprintln!("Error when parsing aguments : {err}");
         process::exit(-1);
     });
