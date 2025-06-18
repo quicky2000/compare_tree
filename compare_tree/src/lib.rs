@@ -8,6 +8,18 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
 
 #[derive(PartialEq)]
 #[derive(Debug)]
+struct Sha1Key {
+    words: [u32; 5]
+}
+
+impl Sha1Key {
+    fn new(word0: u32, word1: u32, word2: u32, word3: u32, word4: u32) -> Sha1Key {
+        Sha1Key {words: [word0, word1, word2, word3, word4]}
+    }
+}
+
+#[derive(PartialEq)]
+#[derive(Debug)]
 pub struct Config {
     reference_path: String,
     other_path: String
@@ -47,5 +59,12 @@ mod test {
     fn test_parse_fail() {
         let args = vec!["reference".to_string(), "other".to_string()];
         assert!(Config::build(args.into_iter()).is_err());
+    }
+
+    #[test]
+    fn test_sha1_key_compare() {
+        let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
+        let key_other = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x5);
+        assert_ne!(key_ref, key_other);
     }
 }
