@@ -1,3 +1,4 @@
+use std::fmt;
 use std::error::Error;
 
 pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
@@ -10,6 +11,12 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
 #[derive(Debug)]
 struct Sha1Key {
     words: [u32; 5]
+}
+
+impl std::fmt::Display for Sha1Key {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:08X}{:08X}{:08X}{:08X}{:08X}", self.words[4], self.words[3], self.words[2], self.words[1], self.words[0])
+    }
 }
 
 impl Sha1Key {
@@ -66,5 +73,10 @@ mod test {
         let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
         let key_other = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x5);
         assert_ne!(key_ref, key_other);
+    }
+    #[test]
+    fn test_sha1_key_display() {
+        let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
+        assert_eq!(format!("{}", key_ref), "0000000400000003000000020000000100000000");
     }
 }
