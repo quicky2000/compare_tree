@@ -15,7 +15,7 @@ struct Sha1Key {
 
 impl std::fmt::Display for Sha1Key {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:08X}{:08X}{:08X}{:08X}{:08X}", self.words[4], self.words[3], self.words[2], self.words[1], self.words[0])
+        self.words.iter().map(|x| write!(f, "{:08X}", x)).rev().collect()
     }
 }
 
