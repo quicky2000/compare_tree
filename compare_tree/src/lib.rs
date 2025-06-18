@@ -23,6 +23,9 @@ impl Sha1Key {
     fn new(word0: u32, word1: u32, word2: u32, word3: u32, word4: u32) -> Sha1Key {
         Sha1Key {words: [word0, word1, word2, word3, word4]}
     }
+    fn from_array(words: [u32; 5]) -> Sha1Key {
+        Sha1Key {words: words}
+    }
 }
 
 #[derive(PartialEq)]
@@ -78,5 +81,11 @@ mod test {
     fn test_sha1_key_display() {
         let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
         assert_eq!(format!("{}", key_ref), "0000000400000003000000020000000100000000");
+    }
+    #[test]
+    fn test_sha1_key_from_array() {
+        let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
+        let key_array = Sha1Key::from_array([0x0, 0x1, 0x2, 0x3, 0x4]);
+        assert_eq!(key_ref, key_array);
     }
 }
