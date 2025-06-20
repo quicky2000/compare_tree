@@ -20,9 +20,6 @@ impl std::fmt::Display for Sha1Key {
 }
 
 impl Sha1Key {
-    fn new(word0: u32, word1: u32, word2: u32, word3: u32, word4: u32) -> Sha1Key {
-        Sha1Key {words: [word0, word1, word2, word3, word4]}
-    }
     fn from_array(words: [u32; 5]) -> Sha1Key {
         Sha1Key {words: words}
     }
@@ -54,6 +51,12 @@ impl Config {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    impl Sha1Key {
+        fn new(word0: u32, word1: u32, word2: u32, word3: u32, word4: u32) -> Sha1Key {
+            Sha1Key {words: [word0, word1, word2, word3, word4]}
+        }
+    }
 
     #[test]
     fn test_parse() {
