@@ -99,9 +99,10 @@ pub fn compute_sha1(data: Vec<u8>) -> Sha1Key {
         println!("check if this is a complete block");
         if (block_index + 1) * 512 <= size_bit {
             println!("Copy complete block");
-            for byte_index in 0..64 {
-                working_block[byte_index / 4] |= u32::from(data[byte_index]) << (24 - 8 * (byte_index % 4 ));
+            for word_index in 0..16 {
+                working_block[word_index] = u32::from_be_bytes(data[word_index * 4..word_index* 4 + 4].try_into().unwrap());
             }
+            display_block(&working_block);
         }
         else {
             let remaining_size_bits = (size_bit % 512) as u32;
@@ -115,7 +116,7 @@ pub fn compute_sha1(data: Vec<u8>) -> Sha1Key {
             if (block_index * 512 + u64::from(remaining_size_bits)) == size_bit {
                 // Copy partial block
                 println!("Copy partial block");
-
+                // Work at byte level because number of remaining byte can be different from 4 multiple
                 for byte_index in 0..(remaining_size_bits / 8) {
                     working_block[(byte_index / 4) as usize] |= u32::from(data[byte_index as usize]) << (24 - 8 * (byte_index % 4 ));
                 }
