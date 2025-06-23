@@ -56,13 +56,6 @@ fn maj( x: u32
 }
 
 //------------------------------------------------------------------------------
-fn rotl( x: u32
-       , n: u32
-       ) -> u32 {
-    ( x << n) | ( x >> ( 32 - n) )
-}
-
-//------------------------------------------------------------------------------
 fn display_block(block: &[u32; 16]) {
     println!("------------------------");
     // Display block
@@ -176,7 +169,7 @@ pub fn compute_sha1(data: Vec<u8>) -> Sha1Key {
         // Computing the other words
         for word_index in 16..words.len() {
             println!("Computing Word[{}]", word_index);
-            words[word_index] = rotl(words[word_index - 3] ^ words[word_index - 8] ^ words[word_index - 14] ^ words[word_index - 16], 1);
+            words[word_index] = u32::rotate_left(words[word_index - 3] ^ words[word_index - 8] ^ words[word_index - 14] ^ words[word_index - 16], 1);
         }
 
         //display words
@@ -197,13 +190,13 @@ pub fn compute_sha1(data: Vec<u8>) -> Sha1Key {
                                   ];
 
         for round_index in 0..words.len() {
-            let temp = rotl(a, 5).wrapping_add(f(b, c, d, round_index as u32))
-                                 .wrapping_add(e)
-                                 .wrapping_add(constants[round_index / 20])
-                                 .wrapping_add(words[round_index]);
+            let temp = u32::rotate_left(a, 5).wrapping_add(f(b, c, d, round_index as u32))
+                                             .wrapping_add(e)
+                                             .wrapping_add(constants[round_index / 20])
+                                             .wrapping_add(words[round_index]);
             e = d;
             d = c;
-            c = rotl(b,30);
+            c = u32::rotate_left(b,30);
             b = a;
             a = temp;
         }
