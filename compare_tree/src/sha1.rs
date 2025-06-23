@@ -300,5 +300,16 @@ mod test {
         let data: Vec<u8> = Vec::from("0123456701234567012345670123456701234567012345670123456701234567");
         assert_eq!(key_ref, compute_sha1(data));
     }
+    #[test]
+    fn test_sha1_string6() {
+        let key_ref = Sha1Key::new( 0xda39a3ee
+                                  , 0x5e6b4b0d
+                                  , 0x3255bfef
+                                  , 0x95601890
+                                  , 0xafd80709
+                                  );
+        let data: Vec<u8> = Vec::from("");
+        assert_eq!(key_ref, compute_sha1(data));
+    }
 
 }
