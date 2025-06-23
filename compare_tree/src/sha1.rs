@@ -75,17 +75,17 @@ pub fn compute_sha1(data: Vec<u8>) -> Sha1Key {
 
     let size_bit: u64 = data.len() as u64 * u64::from(u8::BITS);
 
-    println!("Size in bit = {} => 0x{:X}", size_bit, size_bit);
+    if cfg!(test) { println!("Size in bit = {} => 0x{:X}", size_bit, size_bit); }
 
     // Computing length complement
     let complement_size: u64 = (448u64.wrapping_sub(size_bit + 1)) % 512;
 
-    println!("Number of padding zeros = {}", complement_size);
+    if cfg!(test) { println!("Number of padding zeros = {}", complement_size); }
 
     // Computing number of blocks
     let nb_blocks: u64 = (size_bit + 1 + complement_size + 64) / 512;
 
-    println!("Nb blocks = {}", nb_blocks);
+    if cfg!(test) { println!("Nb blocks = {}", nb_blocks); }
 
     for block_index in 0..nb_blocks {
 
@@ -94,48 +94,50 @@ pub fn compute_sha1(data: Vec<u8>) -> Sha1Key {
 
         // Init block with datas
         //--------------------------
-        println!("Prepare block[{}]", block_index);
+        if cfg!(test) { println!("Prepare block[{}]", block_index); }
         // Check if this is a complete block
-        println!("check if this is a complete block");
+        if cfg!(test) { println!("check if this is a complete block"); }
         if (block_index + 1) * 512 <= size_bit {
-            println!("Copy complete block");
+            if cfg!(test) { println!("Copy complete block"); }
             for word_index in 0..16 {
                 working_block[word_index] = u32::from_be_bytes(data[word_index * 4..word_index* 4 + 4].try_into().unwrap());
             }
-            display_block(&working_block);
+            if cfg!(test) { display_block(&working_block); }
         }
         else {
             let remaining_size_bits = (size_bit % 512) as u32;
-            println!("size of incomplete block in bits = {}", remaining_size_bits);
+            if cfg!(test) { println!("size of incomplete block in bits = {}", remaining_size_bits); }
             let l_rest_size_word = 1 + remaining_size_bits / 32;
-            println!("size of incomplete block in word = {}", l_rest_size_word);
+            if cfg!(test) { println!("size of incomplete block in word = {}", l_rest_size_word); }
 
             // Check if there are remaining datas to copy
             // Check if there are less than 512 data bits to copy
-            println!("Check if there are less than 512 data bits to copy");
+            if cfg!(test) { println!("Check if there are less than 512 data bits to copy"); }
             if (block_index * 512 + u64::from(remaining_size_bits)) == size_bit {
                 // Copy partial block
-                println!("Copy partial block");
+                if cfg!(test) { println!("Copy partial block"); }
                 // Work at byte level because number of remaining byte can be different from 4 multiple
                 for byte_index in 0..(remaining_size_bits / 8) {
                     working_block[(byte_index / 4) as usize] |= u32::from(data[byte_index as usize]) << (24 - 8 * (byte_index % 4 ));
                 }
-                display_block(&working_block);
+                if cfg!(test) { display_block(&working_block); }
             }
 
             let mut reset_word_start_index = 0;
             let mut reset_word_end_index = 16;
             // Check if we are in the block where to put the additional 1 bit
-            println!("Check if we are in the block where to put the additional 1 bit");
+            if cfg!(test) { println!("Check if we are in the block where to put the additional 1 bit"); }
             if (size_bit  / 512) == block_index {
                 // Setting one additional bit to 1
-                println!("Setting additional bit to 1");
-                println!("Index of block where to set the additional bit to 1 = {}", remaining_size_bits / 32);
-                println!("Shifting of {}", 31u32.wrapping_sub(remaining_size_bits));
-                println!("Mask = 0x{:X}", 1u32 << ((31u32.wrapping_sub(remaining_size_bits) % 32)));
+                if cfg!(test) {
+                    println!("Setting additional bit to 1");
+                    println!("Index of block where to set the additional bit to 1 = {}", remaining_size_bits / 32);
+                    println!("Shifting of {}", 31u32.wrapping_sub(remaining_size_bits));
+                    println!("Mask = 0x{:X}", 1u32 << ((31u32.wrapping_sub(remaining_size_bits) % 32)));
+                }
                 working_block[(remaining_size_bits / 32) as usize] |=  1u32 << ((31u32.wrapping_sub(remaining_size_bits) % 32));
 
-                display_block(&working_block);
+                if cfg!(test) { display_block(&working_block); }
 
                 reset_word_start_index = 1 + ((remaining_size_bits + 2) / 32);
             }
@@ -151,16 +153,18 @@ pub fn compute_sha1(data: Vec<u8>) -> Sha1Key {
 
             // Setting rest of word to 0
             for word_index in reset_word_start_index..reset_word_end_index {
-                println!("Setting word[{}] to 0", word_index);
+                if cfg!(test) { println!("Setting word[{}] to 0", word_index); }
                 working_block[word_index as usize] = 0;
             }
         }
 
         let mut words: [u32; 80] = [0; 80];
 
-        // Display block to treat
-        //---------------------------
-        display_block(&working_block);
+        if cfg!(test) {
+            // Display block to treat
+            //---------------------------
+            display_block(&working_block);
+        }
 
         // Initialising word array
         //----------------------------
@@ -169,13 +173,15 @@ pub fn compute_sha1(data: Vec<u8>) -> Sha1Key {
 
         // Computing the other words
         for word_index in 16..words.len() {
-            println!("Computing Word[{}]", word_index);
+            if cfg!(test) { println!("Computing Word[{}]", word_index); }
             words[word_index] = u32::rotate_left(words[word_index - 3] ^ words[word_index - 8] ^ words[word_index - 14] ^ words[word_index - 16], 1);
         }
 
         //display words
-        for (index, word) in words.iter().enumerate() {
-            println!("Word[{}] = 0x{:08X}", index, word);
+        if cfg!(test) {
+            for (index, word) in words.iter().enumerate() {
+                println!("Word[{}] = 0x{:08X}", index, word);
+            }
         }
 
         // Initialising variables
