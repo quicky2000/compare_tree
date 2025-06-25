@@ -1,14 +1,18 @@
 use std::error::Error;
+use std::fs;
+use std::fs::File;
+use std::io::Read;
 
 mod sha1;
 
 pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     println!("Reference path {}", configuration.reference_path);
     println!("Other path {}", configuration.other_path);
-    //let data = Vec::<u8>::new();
-    //let data = vec!('a' as u8);
-    let data: Vec<u8> = Vec::from("Hello world");
-    let key = sha1::compute_sha1(data);
+    let key_result = compute_file_sha1(&configuration.reference_path);
+    let key = match key_result {
+        Ok(k) => k,
+        Err(e) => return Err(e.into())
+    };
     println!("Key is {key}");
     Ok(())
 }
@@ -34,6 +38,27 @@ impl Config {
         };
         Ok(Config {reference_path, other_path})
     }
+}
+
+fn compute_file_sha1(file_name: &str) -> Result<sha1::Sha1Key, String> {
+    let check = fs::exists(file_name);
+    if check.is_err() || !check.unwrap() {
+        return Err(format!("file {file_name} do not exist").to_string())
+    }
+
+    let file_result = File::open(file_name);
+    let mut file = match file_result {
+        Ok(f) => f,
+        Err(_e) => return Err(format!("Unable to open file {}", file_name))
+    };
+
+    let mut data: Vec<u8> = Vec::new();
+    let read_result = file.read_to_end(&mut data);
+    if read_result.is_err() {
+        return Err(format!("Unable to read content of file {file_name}").to_string());
+    }
+    println!("{:?}", data);
+    Ok(sha1::compute_sha1(data))
 }
 
 #[cfg(test)]
