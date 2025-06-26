@@ -33,6 +33,12 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     if metadata.is_symlink() {
         println!("{} is a link", configuration.other_path)
     }
+    let key_result = compute_link_sha1(&configuration.other_path);
+    let key = match key_result {
+        Ok(k) => k,
+        Err(e) => return Err(e.into())
+    };
+    println!("Key is {key}");
     Ok(())
 }
 
@@ -77,6 +83,24 @@ fn compute_file_sha1(file_name: &str) -> Result<sha1::Sha1Key, String> {
         return Err(format!("Unable to read content of file {file_name}").to_string());
     }
     println!("{:?}", data);
+    Ok(sha1::compute_sha1(data))
+}
+
+fn compute_link_sha1(link_name: &str) -> Result<sha1::Sha1Key, String> {
+    let check = fs::exists(link_name);
+    if check.is_err() || !check.unwrap() {
+        return Err(format!("file {link_name} do not exist").to_string())
+    }
+    let read_result = fs::read_link(link_name);
+    let path = match read_result {
+        Ok(p) => p,
+        Err(_e) => return Err(format!("Fail to read path of link {link_name}").to_string())
+    };
+    let path_str = match path.to_str() {
+        Some(str) => str,
+        None => return Err(format!("Fail to convert link {link_name} path to string").to_string())
+    };
+    let data: Vec<u8> = Vec::from(path_str);
     Ok(sha1::compute_sha1(data))
 }
 
