@@ -25,7 +25,20 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     }
     let metadata = metadata_result.unwrap();
     if metadata.is_dir() {
-        println!("{} is a directory", configuration.other_path)
+        println!("{} is a directory", configuration.other_path);
+        let dir_iter_result = fs::read_dir(&configuration.other_path);
+        let dir_iter = match dir_iter_result {
+            Ok(dir_iter) => dir_iter,
+            Err(_e) => return Err(format!("problem with dir_iter on {}", configuration.other_path).into())
+        };
+        for item_result in dir_iter {
+            let item = match item_result {
+                Ok(item) => item,
+                Err(_e) => return Err(format!("Issue with item").into())
+            };
+            println!("=> {}", item.path().display());
+        }
+
     }
     if metadata.is_file() {
         println!("{} is a file", configuration.other_path)
