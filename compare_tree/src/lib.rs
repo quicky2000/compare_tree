@@ -8,6 +8,17 @@ mod sha1;
 pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     println!("Reference path {}", configuration.reference_path);
     println!("Other path {}", configuration.other_path);
+
+    let check = fs::exists(&configuration.reference_path);
+    if check.is_err() || !check.unwrap() {
+        return Err(format!("file {} do not exist", configuration.reference_path).into())
+    }
+
+    let check = fs::exists(&configuration.other_path);
+    if check.is_err() || !check.unwrap() {
+        return Err(format!("file {} do not exist", configuration.other_path).into())
+    }
+
     let key_result = compute_file_sha1(&configuration.reference_path);
     let key = match key_result {
         Ok(k) => k,
