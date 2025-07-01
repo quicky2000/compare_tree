@@ -14,9 +14,27 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
         return Err(format!("file {} do not exist", configuration.reference_path).into())
     }
 
+    let metadata_result = fs::symlink_metadata(&configuration.reference_path);
+    if metadata_result.is_err() {
+        return Err(format!("Unable to collect metadata from file {}", configuration.reference_path).into());
+    }
+    let metadata = metadata_result.unwrap();
+    if !metadata.is_dir() {
+        return Err(format!("{} is not a directory", configuration.reference_path).into());
+    }
+
     let check = fs::exists(&configuration.other_path);
     if check.is_err() || !check.unwrap() {
         return Err(format!("file {} do not exist", configuration.other_path).into())
+    }
+
+    let metadata_result = fs::symlink_metadata(&configuration.other_path);
+    if metadata_result.is_err() {
+        return Err(format!("Unable to collect metadata from file {}", configuration.other_path).into());
+    }
+    let metadata = metadata_result.unwrap();
+    if !metadata.is_dir() {
+        return Err(format!("{} is not a directory", configuration.other_path).into());
     }
 
     let key_result = compute_file_sha1(&configuration.reference_path);
