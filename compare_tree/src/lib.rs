@@ -20,6 +20,7 @@ use std::fs::File;
 use std::io::Read;
 
 mod sha1;
+mod filetree_info;
 
 fn check_directory(name: &str ) -> Result<bool, String> {
 
@@ -43,6 +44,12 @@ fn check_directory(name: &str ) -> Result<bool, String> {
 pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     println!("Reference path {}", configuration.reference_path);
     println!("Other path {}", configuration.other_path);
+
+    let my_info = filetree_info::FileTreeInfo {
+        name: "my_filetree".to_string(),
+        height: 8
+    };
+    println!("{:?}", my_info);
 
     let result = check_directory(&configuration.reference_path);
     if result.is_err() {
