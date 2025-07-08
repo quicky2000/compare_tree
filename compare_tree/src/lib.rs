@@ -164,6 +164,14 @@ mod test {
         let args = vec!["reference".to_string(), "other".to_string()];
         assert!(Config::build(args.into_iter()).is_err());
     }
+    #[test]
+    fn test_check_directory() {
+        assert!(check_directory("target").unwrap());
+    }
+    #[test]
+    fn test_check_directory_fail() {
+        assert!(check_directory("dummy_target").is_err());
+    }
 
 }
 
