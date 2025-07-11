@@ -18,9 +18,27 @@ use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
+use std::path::PathBuf;
 
 mod sha1;
 mod filetree_info;
+
+fn analyse_filetree(path: PathBuf) -> Result<bool, String> {
+        let string_path = path.to_str().unwrap();
+        let dir_iter_result = fs::read_dir(string_path);
+        let dir_iter = match dir_iter_result {
+            Ok(dir_iter) => dir_iter,
+            Err(_e) => return Err(format!("problem with dir_iter on {}", string_path).into())
+        };
+        for item_result in dir_iter {
+            let item = match item_result {
+                Ok(item) => item,
+                Err(_e) => return Err(format!("Issue with item").into())
+            };
+            println!("Analyse => {}", item.path().display());
+        }
+        Ok(true)
+}
 
 fn check_directory(name: &str ) -> Result<bool, String> {
 
@@ -59,6 +77,11 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     if result.is_err() {
         return Err(result.err().unwrap().into());
     }
+
+    let mut to_analyse = PathBuf::new();
+    to_analyse.push(&configuration.reference_path);
+    analyse_filetree(to_analyse);
+
     let key_result = compute_file_sha1(&configuration.reference_path);
     let key = match key_result {
         Ok(k) => k,
