@@ -15,10 +15,13 @@
       along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
+use crate::sha1;
+
 #[derive(Debug)]
 pub struct FileTreeInfo {
     pub name: String,
-    pub height: u32
+    pub height: u32,
+    pub sha1: sha1::Sha1Key
 }
 
 #[cfg(test)]
@@ -29,10 +32,12 @@ mod test {
     fn create_filetree_info() {
         let ref_filetree_info = FileTreeInfo {
             name: "filetree".to_string(),
-            height: 8
+            height: 8,
+            sha1: sha1::compute_sha1(vec!(0))
         };
         assert_eq!(ref_filetree_info.name, "filetree");
         assert_eq!(ref_filetree_info.height, 8);
+        assert_eq!(ref_filetree_info.sha1, sha1::compute_sha1(vec!(0)));
     }
 
 }

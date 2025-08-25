@@ -65,7 +65,8 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
 
     let my_info = filetree_info::FileTreeInfo {
         name: "my_filetree".to_string(),
-        height: 8
+        height: 8,
+        sha1: sha1::compute_sha1(vec!(0))
     };
     println!("{:?}", my_info);
 
