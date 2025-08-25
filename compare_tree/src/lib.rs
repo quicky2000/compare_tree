@@ -23,7 +23,7 @@ use std::path::PathBuf;
 mod sha1;
 mod filetree_info;
 
-fn analyse_filetree(path: PathBuf) -> Result<bool, String> {
+fn analyse_filetree(path: PathBuf, height: u32) -> Result<filetree_info::FileTreeInfo, String> {
         let string_path = path.to_str().unwrap();
         let dir_iter_result = fs::read_dir(string_path);
         let dir_iter = match dir_iter_result {
@@ -37,7 +37,9 @@ fn analyse_filetree(path: PathBuf) -> Result<bool, String> {
             };
             println!("Analyse => {}", item.path().display());
         }
-        Ok(true)
+        Ok(filetree_info::FileTreeInfo{name: string_path.into(),
+                                       height: height,
+                                       sha1: sha1::compute_sha1(vec!(0))})
 }
 
 fn check_directory(name: &str ) -> Result<bool, String> {
@@ -81,7 +83,12 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
 
     let mut to_analyse = PathBuf::new();
     to_analyse.push(&configuration.reference_path);
-    analyse_filetree(to_analyse);
+    let analyse_result = analyse_filetree(to_analyse, 1);
+    let analyse = match analyse_result {
+        Ok(k) => k,
+        Err(e) => return Err(e.into())
+    };
+    println!("{:?}", analyse);
 
     let key_result = compute_file_sha1(&configuration.reference_path);
     let key = match key_result {
