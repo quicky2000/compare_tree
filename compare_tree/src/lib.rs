@@ -30,16 +30,21 @@ fn analyse_filetree(path: PathBuf, height: u32) -> Result<filetree_info::FileTre
             Ok(dir_iter) => dir_iter,
             Err(_e) => return Err(format!("problem with dir_iter on {}", string_path).into())
         };
+        let mut nb_item: u32 = 0;
+        let mut data = Vec::<u8>::new();
         for item_result in dir_iter {
             let item = match item_result {
                 Ok(item) => item,
                 Err(_e) => return Err(format!("Issue with item").into())
             };
+            nb_item += 1;
             println!("Analyse => {}", item.path().display());
         }
+        println!("Analyse => {} items at this level", nb_item);
+        data.extend(nb_item.to_le_bytes());
         Ok(filetree_info::FileTreeInfo{name: string_path.into(),
                                        height: height,
-                                       sha1: sha1::compute_sha1(vec!(0))})
+                                       sha1: sha1::compute_sha1(data)})
 }
 
 fn check_directory(name: &str ) -> Result<bool, String> {
