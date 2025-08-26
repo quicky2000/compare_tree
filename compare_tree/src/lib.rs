@@ -231,6 +231,24 @@ mod test {
     fn test_check_directory_fail() {
         assert!(check_directory("dummy_target").is_err());
     }
+   #[test]
+    fn test_check_analyse_empty_dir() {
+        let create_result = fs::create_dir("empty");
+        assert!(create_result.is_ok());
+        let my_info = filetree_info::FileTreeInfo {
+            name: "empty".to_string(),
+            height: 1,
+            sha1: sha1::compute_sha1(vec!(0,0,0,0))
+        };
+        let mut to_analyse = PathBuf::new();
+        to_analyse.push("empty");
+        let analyse_result = analyse_filetree(to_analyse, 1);
+        assert!(analyse_result.is_ok());
+        let analyse = analyse_result.unwrap();
+        assert_eq!(my_info, analyse);
+        let rm_result = fs::remove_dir("empty");
+        assert!(rm_result.is_ok());
+    }
 
 }
 
