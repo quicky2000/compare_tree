@@ -15,6 +15,7 @@
       along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
+use std::fmt;
 use crate::sha1;
 
 #[derive(Debug)]
@@ -22,6 +23,12 @@ pub struct FileTreeInfo {
     pub name: String,
     pub height: u32,
     pub sha1: sha1::Sha1Key
+}
+
+impl fmt::Display for FileTreeInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}, {}", self.sha1, self.name, self .height)
+    }
 }
 
 #[cfg(test)]
@@ -40,4 +47,13 @@ mod test {
         assert_eq!(ref_filetree_info.sha1, sha1::compute_sha1(vec!(0)));
     }
 
+    #[test]
+    fn check_filetree_info_display() {
+        let ref_filetree_info = FileTreeInfo {
+            name: "filetree".to_string(),
+            height: 8,
+            sha1: sha1::compute_sha1(vec!(0))
+        };
+        assert_eq!(format!("{}", ref_filetree_info), "EDA2784F420E43F652B521D7B0CFF93F5BA93C9D filetree, 8");
+    }
 }

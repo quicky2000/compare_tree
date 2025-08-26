@@ -75,7 +75,7 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
         height: 8,
         sha1: sha1::compute_sha1(vec!(0))
     };
-    println!("{:?}", my_info);
+    println!("{}", my_info);
 
     let result = check_directory(&configuration.reference_path);
     if result.is_err() {
@@ -93,7 +93,7 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
         Ok(k) => k,
         Err(e) => return Err(e.into())
     };
-    println!("{:?}", analyse);
+    println!("{}", analyse);
 
     let key_result = compute_file_sha1(&configuration.reference_path);
     let key = match key_result {
