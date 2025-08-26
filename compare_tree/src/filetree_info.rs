@@ -19,6 +19,7 @@ use std::fmt;
 use crate::sha1;
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub struct FileTreeInfo {
     pub name: String,
     pub height: u32,
