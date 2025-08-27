@@ -16,7 +16,7 @@
 */
 use std::fmt;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, PartialOrd)]
 #[derive(Debug)]
 pub struct Sha1Key {
     words: [u32; 5]
@@ -326,6 +326,35 @@ mod test {
                                   );
         let data: Vec<u8> = Vec::from("");
         assert_eq!(key_ref, compute_sha1(data));
+    }
+    #[test]
+    fn test_sha1_order() {
+        let key1 = Sha1Key::new( 0x0
+                               , 0x8
+                               , 0x0
+                               , 0x0
+                               , 0x0
+                               );
+        let key2 = Sha1Key::new( 0x1
+                               , 0x0
+                               , 0x0
+                               , 0x0
+                               , 0x0
+                               );
+        assert!(key1 < key2);
+        let key3 = Sha1Key::new( 0x10
+                               , 0x8
+                               , 0x0
+                               , 0x0
+                               , 0x0
+                               );
+        let key4 = Sha1Key::new( 0x10
+                               , 0x0
+                               , 0x0
+                               , 0x0
+                               , 0x0
+                               );
+        assert!(key3 > key4);
     }
 
 }
