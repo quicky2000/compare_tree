@@ -23,7 +23,7 @@ use std::path::PathBuf;
 mod sha1;
 mod filetree_info;
 
-fn analyse_filetree(path: PathBuf, height: u32) -> Result<filetree_info::FileTreeInfo, String> {
+fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String> {
         let string_path = path.to_str().unwrap();
         let dir_iter_result = fs::read_dir(string_path);
         let dir_iter = match dir_iter_result {
@@ -31,6 +31,7 @@ fn analyse_filetree(path: PathBuf, height: u32) -> Result<filetree_info::FileTre
             Err(_e) => return Err(format!("problem with dir_iter on {}", string_path).into())
         };
         let mut nb_item: u32 = 0;
+        let height: u32 = 0;
         let mut data = Vec::<u8>::new();
         for item_result in dir_iter {
             let item = match item_result {
@@ -88,7 +89,7 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
 
     let mut to_analyse = PathBuf::new();
     to_analyse.push(&configuration.reference_path);
-    let analyse_result = analyse_filetree(to_analyse, 1);
+    let analyse_result = analyse_filetree(to_analyse);
     let analyse = match analyse_result {
         Ok(k) => k,
         Err(e) => return Err(e.into())
@@ -237,7 +238,7 @@ mod test {
         assert!(create_result.is_ok());
         let mut to_analyse = PathBuf::new();
         to_analyse.push(name);
-        let analyse_result = analyse_filetree(to_analyse, 1);
+        let analyse_result = analyse_filetree(to_analyse);
         let rm_result = fs::remove_dir(name);
         assert!(rm_result.is_ok());
         assert!(analyse_result.is_ok());
@@ -248,7 +249,7 @@ mod test {
     fn test_check_analyse_empty_dir() {
         let my_info = filetree_info::FileTreeInfo {
             name: "empty".to_string(),
-            height: 1,
+            height: 0,
             sha1: sha1::compute_sha1(vec!(0,0,0,0))
         };
         assert_eq!(my_info, analyse_empty_dir("empty"));
