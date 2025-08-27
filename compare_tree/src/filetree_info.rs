@@ -32,6 +32,10 @@ impl fmt::Display for FileTreeInfo {
     }
 }
 
+pub fn equivalent(op1: &FileTreeInfo, op2: &FileTreeInfo) -> bool {
+    op1.height == op2.height && op1.sha1 == op2.sha1
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
