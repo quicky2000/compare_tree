@@ -231,23 +231,32 @@ mod test {
     fn test_check_directory_fail() {
         assert!(check_directory("dummy_target").is_err());
     }
-   #[test]
-    fn test_check_analyse_empty_dir() {
-        let create_result = fs::create_dir("empty");
+
+    fn analyse_empty_dir(name: &str) -> filetree_info::FileTreeInfo {
+        let create_result = fs::create_dir(name);
         assert!(create_result.is_ok());
+        let mut to_analyse = PathBuf::new();
+        to_analyse.push(name);
+        let analyse_result = analyse_filetree(to_analyse, 1);
+        let rm_result = fs::remove_dir(name);
+        assert!(rm_result.is_ok());
+        assert!(analyse_result.is_ok());
+        analyse_result.unwrap()
+    }
+
+    #[test]
+    fn test_check_analyse_empty_dir() {
         let my_info = filetree_info::FileTreeInfo {
             name: "empty".to_string(),
             height: 1,
             sha1: sha1::compute_sha1(vec!(0,0,0,0))
         };
-        let mut to_analyse = PathBuf::new();
-        to_analyse.push("empty");
-        let analyse_result = analyse_filetree(to_analyse, 1);
-        assert!(analyse_result.is_ok());
-        let analyse = analyse_result.unwrap();
-        assert_eq!(my_info, analyse);
-        let rm_result = fs::remove_dir("empty");
-        assert!(rm_result.is_ok());
+        assert_eq!(my_info, analyse_empty_dir("empty"));
+    }
+
+   #[test]
+    fn test_check_analyse_empty_dir2() {
+        assert!(filetree_info::equivalent(&analyse_empty_dir("empty1"), &analyse_empty_dir("empty2")));
     }
 
 }
