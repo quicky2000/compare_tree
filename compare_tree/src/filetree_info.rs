@@ -19,11 +19,11 @@ use std::fmt;
 use crate::sha1;
 
 #[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(PartialEq, PartialOrd)]
 pub struct FileTreeInfo {
-    pub name: String,
+    pub sha1: sha1::Sha1Key,
     pub height: u32,
-    pub sha1: sha1::Sha1Key
+    pub name: String
 }
 
 impl fmt::Display for FileTreeInfo {
@@ -60,5 +60,42 @@ mod test {
             sha1: sha1::compute_sha1(vec!(0))
         };
         assert_eq!(format!("{}", ref_filetree_info), "EDA2784F420E43F652B521D7B0CFF93F5BA93C9D filetree, 8");
+    }
+    #[test]
+    fn check_filetree_info_order() {
+        let filetree_info1 = FileTreeInfo {
+            name: "a".to_string(),
+            height: 1,
+            sha1: sha1::compute_sha1(vec!(1))
+        };
+        let filetree_info2 = FileTreeInfo {
+            name: "b".to_string(),
+            height: 1,
+            sha1: sha1::compute_sha1(vec!(0))
+        };
+        print!("{:?}\n{:?}", filetree_info1, filetree_info2);
+        assert!(filetree_info1 > filetree_info2);
+        let filetree_info3 = FileTreeInfo {
+            name: "z".to_string(),
+            height: 1,
+            sha1: sha1::compute_sha1(vec!(0))
+        };
+        let filetree_info4 = FileTreeInfo {
+            name: "b".to_string(),
+            height: 2,
+            sha1: sha1::compute_sha1(vec!(0))
+        };
+        assert!(filetree_info3 < filetree_info4);
+        let filetree_info5 = FileTreeInfo {
+            name: "b".to_string(),
+            height: 2,
+            sha1: sha1::compute_sha1(vec!(0))
+        };
+        let filetree_info6 = FileTreeInfo {
+            name: "a".to_string(),
+            height: 2,
+            sha1: sha1::compute_sha1(vec!(0))
+        };
+        assert!(filetree_info5 > filetree_info6);
     }
 }
