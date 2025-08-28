@@ -24,7 +24,7 @@ mod sha1;
 mod filetree_info;
 
 fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String> {
-        let string_path = path.to_str().unwrap();
+        let string_path = path.to_str().ok_or(format!("to_str() issue with {}", path.display()))?;
         let dir_iter_result = fs::read_dir(string_path);
         let dir_iter = match dir_iter_result {
             Ok(dir_iter) => dir_iter,
