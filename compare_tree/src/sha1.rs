@@ -32,6 +32,12 @@ impl Sha1Key {
     fn from_array(words: [u32; 5]) -> Sha1Key {
         Sha1Key {words: words}
     }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+        self.words.iter().for_each(|x| result.extend(x.to_le_bytes()));
+        return result;
+    }
 }
 
 fn f( x: u32
@@ -355,6 +361,23 @@ mod test {
                                , 0x0
                                );
         assert!(key3 > key4);
+    }
+    #[test]
+    fn test_sha1_to_bytes() {
+        let key = Sha1Key::new( 0xda39a3ee
+                              , 0x5e6b4b0d
+                              , 0x3255bfef
+                              , 0x95601890
+                              , 0xafd80709
+                              );
+        let result = key.to_bytes();
+        let ref_vec = vec!( 0xee, 0xa3, 0x39, 0xda
+                          , 0x0d, 0x4b, 0x6b, 0x5e
+                          , 0xef, 0xbf, 0x55, 0x32
+                          , 0x90, 0x18, 0x60, 0x95
+                          , 0x09, 0x07, 0xd8, 0xaf
+                          );
+        assert_eq!(ref_vec, result);
     }
 
 }
