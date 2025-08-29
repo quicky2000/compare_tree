@@ -25,6 +25,8 @@ mod filetree_info;
 
 fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String> {
         let string_path = path.to_str().ok_or(format!("to_str() issue with {}", path.display()))?;
+
+        // Get iterator to list directory content
         let dir_iter_result = fs::read_dir(string_path);
         let dir_iter = match dir_iter_result {
             Ok(dir_iter) => dir_iter,
@@ -32,17 +34,53 @@ fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String
         };
         let mut nb_item: u32 = 0;
         let height: u32 = 0;
-        let mut data = Vec::<u8>::new();
+        let mut keys = Vec::new();
+
+        // List directory content
         for item_result in dir_iter {
+
             let item = match item_result {
                 Ok(item) => item,
                 Err(_e) => return Err(format!("Issue with item").into())
             };
+
             nb_item += 1;
-            println!("Analyse => {}", item.path().display());
+            let item_path = item.path();
+            println!("Analyse => {}", item_path.display());
+            let item_path_str = item_path.to_str().ok_or(format!("to_str() issue with {}", item.path().display()))?;
+
+            // Get item metadata
+            let metadata_result = item.metadata();
+            if metadata_result.is_err() {
+                return Err(format!("Unable to collect metadata from file {}", item_path_str).into());
+            }
+            let metadata = metadata_result.unwrap();
+
+            // Treat items depending on its type
+            if metadata.is_dir() {
+                println!("{} is a directory", item_path_str);
+                let filetree_info = analyse_filetree(item.path())?;
+                keys.push(filetree_info.sha1);
+            }
+            if metadata.is_file() {
+                println!("{} is a file", item_path_str);
+                keys.push(compute_file_sha1(item_path_str)?);
+            }
+            if metadata.is_symlink() {
+                println!("{} is a link", item_path_str);
+                keys.push(compute_link_sha1(item_path_str)?);
+            }
         }
         println!("Analyse => {} items at this level", nb_item);
+        // Sort SHA1 keys to be independant of directory listing order
+        keys.sort();
+        keys.iter().for_each(|x| println!("{x:?}"));
+
+        // Converts all sha1 + number of items to byte in order to compute SHA1 of this directory
+        let mut data = Vec::<u8>::new();
+        keys.iter().for_each(|k|data.extend(k.to_bytes()));
         data.extend(nb_item.to_le_bytes());
+
         Ok(filetree_info::FileTreeInfo{name: string_path.into(),
                                        height: height,
                                        sha1: sha1::compute_sha1(data)})
