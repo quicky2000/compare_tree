@@ -44,7 +44,6 @@ fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String
                 Err(_e) => return Err(format!("Issue with item").into())
             };
 
-            nb_item += 1;
             let item_path = item.path();
             println!("Analyse => {}", item_path.display());
             let item_path_str = item_path.to_str().ok_or(format!("to_str() issue with {}", item.path().display()))?;
@@ -61,14 +60,17 @@ fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String
                 println!("{} is a directory", item_path_str);
                 let filetree_info = analyse_filetree(item.path())?;
                 keys.push(filetree_info.sha1);
+                nb_item += filetree_info.nb_item;
             }
             if metadata.is_file() {
                 println!("{} is a file", item_path_str);
                 keys.push(compute_file_sha1(item_path_str)?);
+                nb_item += 1;
             }
             if metadata.is_symlink() {
                 println!("{} is a link", item_path_str);
                 keys.push(compute_link_sha1(item_path_str)?);
+                nb_item += 1;
             }
         }
         println!("Analyse => {} items at this level", nb_item);
@@ -83,7 +85,8 @@ fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String
 
         Ok(filetree_info::FileTreeInfo{name: string_path.into(),
                                        height: height,
-                                       sha1: sha1::compute_sha1(data)})
+                                       sha1: sha1::compute_sha1(data),
+                                       nb_item: nb_item})
 }
 
 fn check_directory(name: &str ) -> Result<bool, String> {
@@ -112,7 +115,8 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     let my_info = filetree_info::FileTreeInfo {
         name: "my_filetree".to_string(),
         height: 8,
-        sha1: sha1::compute_sha1(vec!(0))
+        sha1: sha1::compute_sha1(vec!(0)),
+        nb_item: 13
     };
     println!("{}", my_info);
 
@@ -288,7 +292,8 @@ mod test {
         let my_info = filetree_info::FileTreeInfo {
             name: "empty".to_string(),
             height: 0,
-            sha1: sha1::compute_sha1(vec!(0,0,0,0))
+            sha1: sha1::compute_sha1(vec!(0,0,0,0)),
+            nb_item: 0
         };
         assert_eq!(my_info, analyse_empty_dir("empty"));
     }

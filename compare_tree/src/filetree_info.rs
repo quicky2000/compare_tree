@@ -23,17 +23,18 @@ use crate::sha1;
 pub struct FileTreeInfo {
     pub sha1: sha1::Sha1Key,
     pub height: u32,
+    pub nb_item: u32,
     pub name: String
 }
 
 impl fmt::Display for FileTreeInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}, {}", self.sha1, self.name, self .height)
+        write!(f, "{} {}, {}, {}", self.sha1, self.name, self.height, self.nb_item)
     }
 }
 
 pub fn equivalent(op1: &FileTreeInfo, op2: &FileTreeInfo) -> bool {
-    op1.height == op2.height && op1.sha1 == op2.sha1
+    op1.height == op2.height && op1.sha1 == op2.sha1 && op1.nb_item == op2.nb_item
 }
 
 #[cfg(test)]
@@ -45,11 +46,13 @@ mod test {
         let ref_filetree_info = FileTreeInfo {
             name: "filetree".to_string(),
             height: 8,
-            sha1: sha1::compute_sha1(vec!(0))
+            sha1: sha1::compute_sha1(vec!(0)),
+            nb_item: 10
         };
         assert_eq!(ref_filetree_info.name, "filetree");
         assert_eq!(ref_filetree_info.height, 8);
         assert_eq!(ref_filetree_info.sha1, sha1::compute_sha1(vec!(0)));
+        assert_eq!(ref_filetree_info.nb_item, 10);
     }
 
     #[test]
@@ -57,20 +60,23 @@ mod test {
         let ref_filetree_info = FileTreeInfo {
             name: "filetree".to_string(),
             height: 8,
-            sha1: sha1::compute_sha1(vec!(0))
+            sha1: sha1::compute_sha1(vec!(0)),
+            nb_item: 10
         };
-        assert_eq!(format!("{}", ref_filetree_info), "EDA2784F420E43F652B521D7B0CFF93F5BA93C9D filetree, 8");
+        assert_eq!(format!("{}", ref_filetree_info), "EDA2784F420E43F652B521D7B0CFF93F5BA93C9D filetree, 8, 10");
     }
     #[test]
     fn check_filetree_info_order() {
         let filetree_info1 = FileTreeInfo {
             name: "a".to_string(),
             height: 1,
+            nb_item: 0,
             sha1: sha1::compute_sha1(vec!(1))
         };
         let filetree_info2 = FileTreeInfo {
             name: "b".to_string(),
             height: 1,
+            nb_item: 0,
             sha1: sha1::compute_sha1(vec!(0))
         };
         print!("{:?}\n{:?}", filetree_info1, filetree_info2);
@@ -78,24 +84,41 @@ mod test {
         let filetree_info3 = FileTreeInfo {
             name: "z".to_string(),
             height: 1,
+            nb_item: 0,
             sha1: sha1::compute_sha1(vec!(0))
         };
         let filetree_info4 = FileTreeInfo {
             name: "b".to_string(),
             height: 2,
+            nb_item: 0,
             sha1: sha1::compute_sha1(vec!(0))
         };
         assert!(filetree_info3 < filetree_info4);
         let filetree_info5 = FileTreeInfo {
-            name: "b".to_string(),
+            name: "a".to_string(),
             height: 2,
+            nb_item: 7,
             sha1: sha1::compute_sha1(vec!(0))
         };
         let filetree_info6 = FileTreeInfo {
             name: "a".to_string(),
             height: 2,
+            nb_item: 5,
             sha1: sha1::compute_sha1(vec!(0))
         };
         assert!(filetree_info5 > filetree_info6);
+        let filetree_info7 = FileTreeInfo {
+            name: "b".to_string(),
+            height: 2,
+            nb_item: 7,
+            sha1: sha1::compute_sha1(vec!(0))
+        };
+        let filetree_info8 = FileTreeInfo {
+            name: "a".to_string(),
+            height: 2,
+            nb_item: 7,
+            sha1: sha1::compute_sha1(vec!(0))
+        };
+        assert!(filetree_info7 > filetree_info8);
     }
 }
