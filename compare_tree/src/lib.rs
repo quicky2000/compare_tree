@@ -33,7 +33,7 @@ fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String
             Err(_e) => return Err(format!("problem with dir_iter on {}", string_path).into())
         };
         let mut nb_item: u32 = 0;
-        let height: u32 = 0;
+        let mut height: u32 = 0;
         let mut keys = Vec::new();
 
         // List directory content
@@ -59,8 +59,14 @@ fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String
             if metadata.is_dir() {
                 println!("{} is a directory", item_path_str);
                 let filetree_info = analyse_filetree(item.path())?;
-                keys.push(filetree_info.sha1);
                 nb_item += filetree_info.nb_item;
+                // Ignore empty directories
+                if filetree_info.nb_item != 0 {
+                    keys.push(filetree_info.sha1);
+                    if height < filetree_info.height + 1 {
+                        height = filetree_info.height + 1;
+                    }
+                }
             }
             if metadata.is_file() {
                 println!("{} is a file", item_path_str);
@@ -298,9 +304,32 @@ mod test {
         assert_eq!(my_info, analyse_empty_dir("empty"));
     }
 
-   #[test]
+    #[test]
     fn test_check_analyse_empty_dir2() {
         assert!(filetree_info::equivalent(&analyse_empty_dir("empty1"), &analyse_empty_dir("empty2")));
+    }
+
+    use std::fs::File;
+    use std::io::prelude::*;
+
+    #[test]
+    fn test_compare_different_names() {
+        {
+            assert!(fs::create_dir("reference").is_ok());
+            let mut file1 = File::create("reference/file1.txt").expect("Unable to create file1");
+            assert!(file1.write_all(b"Hello world!").is_ok());
+            assert!(fs::create_dir("other").is_ok());
+            let mut file2 = File::create("other/file2.txt").expect("Unable to create file2");
+            assert!(file2.write_all(b"Hello world!").is_ok());
+            assert!(fs::create_dir("other/empty").is_ok());
+        }
+        let mut path1 = PathBuf::new();
+        path1.push("reference");
+        let mut path2 = PathBuf::new();
+        path2.push("other");
+        assert!(filetree_info::equivalent(&analyse_filetree(path1).expect("Error with reference"), &analyse_filetree(path2).expect("Error with other")));
+        assert!(fs::remove_dir_all("reference").is_ok());
+        assert!(fs::remove_dir_all("other").is_ok());
     }
 
 }
