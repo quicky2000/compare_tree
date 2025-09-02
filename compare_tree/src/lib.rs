@@ -95,7 +95,13 @@ fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String
                                        nb_item: nb_item})
 }
 
-fn check_directory(name: &str ) -> Result<bool, String> {
+    fn analyse(name: &str) -> Result<filetree_info::FileTreeInfo, String> {
+        let mut path = PathBuf::new();
+        path.push(name);
+        analyse_filetree(path)
+    }
+
+    fn check_directory(name: &str ) -> Result<bool, String> {
 
     let check = fs::exists(name);
     if check.is_err() || !check.unwrap() {
@@ -323,11 +329,7 @@ mod test {
             assert!(file2.write_all(b"Hello world!").is_ok());
             assert!(fs::create_dir("other/empty").is_ok());
         }
-        let mut path1 = PathBuf::new();
-        path1.push("reference");
-        let mut path2 = PathBuf::new();
-        path2.push("other");
-        assert!(filetree_info::equivalent(&analyse_filetree(path1).expect("Error with reference"), &analyse_filetree(path2).expect("Error with other")));
+        assert!(filetree_info::equivalent(&analyse("reference").expect("Error with reference"), &analyse("other").expect("Error with other")));
         assert!(fs::remove_dir_all("reference").is_ok());
         assert!(fs::remove_dir_all("other").is_ok());
     }
@@ -344,9 +346,7 @@ mod test {
             let mut file3 = File::create("reference2/file3.txt").expect("Unable to create file3");
             assert!(file3.write_all(b"Hello world!").is_ok());
         }
-        let mut path1 = PathBuf::new();
-        path1.push("reference2");
-        assert_eq!(2, analyse_filetree(path1).expect("Error with reference").height);
+        assert_eq!(2, analyse("reference2").expect("Error with reference").height);
         assert!(fs::remove_dir_all("reference2").is_ok());
     }
 }
