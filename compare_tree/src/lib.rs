@@ -332,5 +332,22 @@ mod test {
         assert!(fs::remove_dir_all("other").is_ok());
     }
 
+    #[test]
+    fn test_height() {
+        {
+            assert!(fs::create_dir_all("reference2/level1/level2").is_ok());
+            let mut file1 = File::create("reference2/level1/level2/file1.txt").expect("Unable to create file1");
+            assert!(file1.write_all(b"Hello world!").is_ok());
+            assert!(fs::create_dir("reference2/level1_bis").is_ok());
+            let mut file2 = File::create("reference2/level1_bis/file2.txt").expect("Unable to create file2");
+            assert!(file2.write_all(b"Hello world!").is_ok());
+            let mut file3 = File::create("reference2/file3.txt").expect("Unable to create file3");
+            assert!(file3.write_all(b"Hello world!").is_ok());
+        }
+        let mut path1 = PathBuf::new();
+        path1.push("reference2");
+        assert_eq!(2, analyse_filetree(path1).expect("Error with reference").height);
+        assert!(fs::remove_dir_all("reference2").is_ok());
+    }
 }
 
