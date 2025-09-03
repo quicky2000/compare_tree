@@ -89,19 +89,26 @@ fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String
         keys.iter().for_each(|k|data.extend(k.to_bytes()));
         data.extend(nb_item.to_le_bytes());
 
-        Ok(filetree_info::FileTreeInfo{name: string_path.into(),
-                                       height: height,
-                                       sha1: sha1::compute_sha1(data),
-                                       nb_item: nb_item})
+        let result = filetree_info::FileTreeInfo{name: string_path.into(),
+                                                 height: height,
+                                                 sha1: sha1::compute_sha1(data),
+                                                 nb_item: nb_item};
+        let write_result = output.write(format!("{}\n", result).as_bytes());
+        if write_result.is_err() {
+            return Err(format!("Unable to write result of {}", string_path).into());
+        }
+
+        Ok(result)
 }
 
-    fn analyse(name: &str) -> Result<filetree_info::FileTreeInfo, String> {
-        let mut path = PathBuf::new();
-        path.push(name);
-        analyse_filetree(path)
-    }
+fn analyse(name: &str) -> Result<filetree_info::FileTreeInfo, String> {
+    let mut file = File::create("dump.txt").expect("Unable to create file1");
+    let mut path = PathBuf::new();
+    path.push(name);
+    analyse_filetree(path, &mut file)
+}
 
-    fn check_directory(name: &str ) -> Result<bool, String> {
+fn check_directory(name: &str ) -> Result<bool, String> {
 
     let check = fs::exists(name);
     if check.is_err() || !check.unwrap() {
