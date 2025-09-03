@@ -148,9 +148,7 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
         return Err(result.err().unwrap().into());
     }
 
-    let mut to_analyse = PathBuf::new();
-    to_analyse.push(&configuration.reference_path);
-    let analyse_result = analyse_filetree(to_analyse);
+    let analyse_result = analyse(&configuration.reference_path);
     let analyse = match analyse_result {
         Ok(k) => k,
         Err(e) => return Err(e.into())
@@ -297,9 +295,7 @@ mod test {
     fn analyse_empty_dir(name: &str) -> filetree_info::FileTreeInfo {
         let create_result = fs::create_dir(name);
         assert!(create_result.is_ok());
-        let mut to_analyse = PathBuf::new();
-        to_analyse.push(name);
-        let analyse_result = analyse_filetree(to_analyse);
+        let analyse_result = analyse(name);
         let rm_result = fs::remove_dir(name);
         assert!(rm_result.is_ok());
         assert!(analyse_result.is_ok());
