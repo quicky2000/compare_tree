@@ -18,6 +18,7 @@ use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
+use std::io::BufWriter;
 use std::path::PathBuf;
 use std::io::prelude::*;
 
@@ -25,7 +26,7 @@ use std::io::prelude::*;
 mod sha1;
 mod filetree_info;
 
-fn analyse_filetree(path: PathBuf, output: &mut File) -> Result<filetree_info::FileTreeInfo, String> {
+fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_info::FileTreeInfo, String> {
     let string_path = path.to_str().ok_or(format!("to_str() issue with {}", path.display()))?;
 
     // Get iterator to list directory content
@@ -111,10 +112,11 @@ fn dump_name(name: & str) -> String {
 
 fn analyse(name: &str) -> Result<filetree_info::FileTreeInfo, String> {
     let filename = dump_name(name);
-    let mut file = File::create(&filename).expect(format!("Unable to create file {}", filename).as_str());
+    let file = File::create(&filename).expect(format!("Unable to create file {}", filename).as_str());
+    let mut buf = BufWriter::new(file);
     let mut path = PathBuf::new();
     path.push(name);
-    analyse_filetree(path, &mut file)
+    analyse_filetree(path, &mut buf)
 }
 
 fn check_directory(name: &str ) -> Result<bool, String> {
