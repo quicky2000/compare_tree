@@ -26,81 +26,81 @@ mod sha1;
 mod filetree_info;
 
 fn analyse_filetree(path: PathBuf, output: &mut File) -> Result<filetree_info::FileTreeInfo, String> {
-        let string_path = path.to_str().ok_or(format!("to_str() issue with {}", path.display()))?;
+    let string_path = path.to_str().ok_or(format!("to_str() issue with {}", path.display()))?;
 
-        // Get iterator to list directory content
-        let dir_iter_result = fs::read_dir(string_path);
-        let dir_iter = match dir_iter_result {
-            Ok(dir_iter) => dir_iter,
-            Err(_e) => return Err(format!("problem with dir_iter on {}", string_path).into())
+    // Get iterator to list directory content
+    let dir_iter_result = fs::read_dir(string_path);
+    let dir_iter = match dir_iter_result {
+        Ok(dir_iter) => dir_iter,
+        Err(_e) => return Err(format!("problem with dir_iter on {}", string_path).into())
+    };
+    let mut nb_item: u32 = 0;
+    let mut height: u32 = 0;
+    let mut keys = Vec::new();
+
+    // List directory content
+    for item_result in dir_iter {
+
+        let item = match item_result {
+            Ok(item) => item,
+            Err(_e) => return Err(format!("Issue with item").into())
         };
-        let mut nb_item: u32 = 0;
-        let mut height: u32 = 0;
-        let mut keys = Vec::new();
 
-        // List directory content
-        for item_result in dir_iter {
+        let item_path = item.path();
+        println!("Analyse => {}", item_path.display());
+        let item_path_str = item_path.to_str().ok_or(format!("to_str() issue with {}", item.path().display()))?;
 
-            let item = match item_result {
-                Ok(item) => item,
-                Err(_e) => return Err(format!("Issue with item").into())
-            };
+        // Get item metadata
+        let metadata_result = item.metadata();
+        if metadata_result.is_err() {
+            return Err(format!("Unable to collect metadata from file {}", item_path_str).into());
+        }
+        let metadata = metadata_result.unwrap();
 
-            let item_path = item.path();
-            println!("Analyse => {}", item_path.display());
-            let item_path_str = item_path.to_str().ok_or(format!("to_str() issue with {}", item.path().display()))?;
-
-            // Get item metadata
-            let metadata_result = item.metadata();
-            if metadata_result.is_err() {
-                return Err(format!("Unable to collect metadata from file {}", item_path_str).into());
-            }
-            let metadata = metadata_result.unwrap();
-
-            // Treat items depending on its type
-            if metadata.is_dir() {
-                println!("{} is a directory", item_path_str);
-                let filetree_info = analyse_filetree(item.path(), output)?;
-                nb_item += filetree_info.nb_item;
-                // Ignore empty directories
-                if filetree_info.nb_item != 0 {
-                    keys.push(filetree_info.sha1);
-                    if height < filetree_info.height + 1 {
-                        height = filetree_info.height + 1;
-                    }
+        // Treat items depending on its type
+        if metadata.is_dir() {
+            println!("{} is a directory", item_path_str);
+            let filetree_info = analyse_filetree(item.path(), output)?;
+            nb_item += filetree_info.nb_item;
+            // Ignore empty directories
+            if filetree_info.nb_item != 0 {
+                keys.push(filetree_info.sha1);
+                if height < filetree_info.height + 1 {
+                    height = filetree_info.height + 1;
                 }
             }
-            if metadata.is_file() {
-                println!("{} is a file", item_path_str);
-                keys.push(compute_file_sha1(item_path_str)?);
-                nb_item += 1;
-            }
-            if metadata.is_symlink() {
-                println!("{} is a link", item_path_str);
-                keys.push(compute_link_sha1(item_path_str)?);
-                nb_item += 1;
-            }
         }
-        println!("Analyse => {} items at this level", nb_item);
-        // Sort SHA1 keys to be independant of directory listing order
-        keys.sort();
-        keys.iter().for_each(|x| println!("{x:?}"));
-
-        // Converts all sha1 + number of items to byte in order to compute SHA1 of this directory
-        let mut data = Vec::<u8>::new();
-        keys.iter().for_each(|k|data.extend(k.to_bytes()));
-        data.extend(nb_item.to_le_bytes());
-
-        let result = filetree_info::FileTreeInfo{name: string_path.into(),
-                                                 height: height,
-                                                 sha1: sha1::compute_sha1(data),
-                                                 nb_item: nb_item};
-        let write_result = output.write(format!("{}\n", result).as_bytes());
-        if write_result.is_err() {
-            return Err(format!("Unable to write result of {}", string_path).into());
+        if metadata.is_file() {
+            println!("{} is a file", item_path_str);
+            keys.push(compute_file_sha1(item_path_str)?);
+            nb_item += 1;
         }
+        if metadata.is_symlink() {
+            println!("{} is a link", item_path_str);
+            keys.push(compute_link_sha1(item_path_str)?);
+            nb_item += 1;
+        }
+    }
+    println!("Analyse => {} items at this level", nb_item);
+    // Sort SHA1 keys to be independant of directory listing order
+    keys.sort();
+    keys.iter().for_each(|x| println!("{x:?}"));
 
-        Ok(result)
+    // Converts all sha1 + number of items to byte in order to compute SHA1 of this directory
+    let mut data = Vec::<u8>::new();
+    keys.iter().for_each(|k|data.extend(k.to_bytes()));
+    data.extend(nb_item.to_le_bytes());
+
+    let result = filetree_info::FileTreeInfo{name: string_path.into(),
+                                             height: height,
+                                             sha1: sha1::compute_sha1(data),
+                                             nb_item: nb_item};
+    let write_result = output.write(format!("{}\n", result).as_bytes());
+    if write_result.is_err() {
+        return Err(format!("Unable to write result of {}", string_path).into());
+    }
+
+    Ok(result)
 }
 
 fn dump_name(name: & str) -> String {
