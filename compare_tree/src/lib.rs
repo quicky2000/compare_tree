@@ -19,11 +19,13 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use std::io::prelude::*;
+
 
 mod sha1;
 mod filetree_info;
 
-fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String> {
+fn analyse_filetree(path: PathBuf, output: &mut File) -> Result<filetree_info::FileTreeInfo, String> {
         let string_path = path.to_str().ok_or(format!("to_str() issue with {}", path.display()))?;
 
         // Get iterator to list directory content
@@ -58,7 +60,7 @@ fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String
             // Treat items depending on its type
             if metadata.is_dir() {
                 println!("{} is a directory", item_path_str);
-                let filetree_info = analyse_filetree(item.path())?;
+                let filetree_info = analyse_filetree(item.path(), output)?;
                 nb_item += filetree_info.nb_item;
                 // Ignore empty directories
                 if filetree_info.nb_item != 0 {
@@ -101,8 +103,15 @@ fn analyse_filetree(path: PathBuf) -> Result<filetree_info::FileTreeInfo, String
         Ok(result)
 }
 
+fn dump_name(name: & str) -> String {
+    let mut filename = String::from(name);
+    filename.push_str("_dump.txt");
+    return filename;
+}
+
 fn analyse(name: &str) -> Result<filetree_info::FileTreeInfo, String> {
-    let mut file = File::create("dump.txt").expect("Unable to create file1");
+    let filename = dump_name(name);
+    let mut file = File::create(&filename).expect(format!("Unable to create file {}", filename).as_str());
     let mut path = PathBuf::new();
     path.push(name);
     analyse_filetree(path, &mut file)
@@ -299,6 +308,7 @@ mod test {
         let rm_result = fs::remove_dir(name);
         assert!(rm_result.is_ok());
         assert!(analyse_result.is_ok());
+        assert!(fs::remove_file(dump_name(name)).is_ok());
         analyse_result.unwrap()
     }
 
@@ -318,9 +328,6 @@ mod test {
         assert!(filetree_info::equivalent(&analyse_empty_dir("empty1"), &analyse_empty_dir("empty2")));
     }
 
-    use std::fs::File;
-    use std::io::prelude::*;
-
     #[test]
     fn test_compare_different_names() {
         {
@@ -335,6 +342,8 @@ mod test {
         assert!(filetree_info::equivalent(&analyse("reference").expect("Error with reference"), &analyse("other").expect("Error with other")));
         assert!(fs::remove_dir_all("reference").is_ok());
         assert!(fs::remove_dir_all("other").is_ok());
+        assert!(fs::remove_file(dump_name("reference")).is_ok());
+        assert!(fs::remove_file(dump_name("other")).is_ok());
     }
 
     #[test]
@@ -351,6 +360,7 @@ mod test {
         }
         assert_eq!(2, analyse("reference2").expect("Error with reference").height);
         assert!(fs::remove_dir_all("reference2").is_ok());
+        assert!(fs::remove_file(dump_name("reference2")).is_ok());
     }
 }
 
