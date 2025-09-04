@@ -19,6 +19,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::io::BufWriter;
+use std::io::BufReader;
 use std::path::PathBuf;
 use std::io::prelude::*;
 
@@ -119,6 +120,38 @@ fn analyse(name: &str) -> Result<filetree_info::FileTreeInfo, String> {
     analyse_filetree(path, &mut buf)
 }
 
+fn generate_dump(name: &str) -> Result<u32, String> {
+    let mut result: u32 = 0;
+    let check = fs::exists(dump_name(name));
+    if check.is_ok() && check.unwrap() {
+        println!("Parse existing dump for {}", name);
+        let file_result = File::open(dump_name(name));
+        let file = match file_result {
+            Ok(f) => f,
+            Err(e) => return Err(format!("Unable to open file {} {}", dump_name(name), e))
+        };
+        let reader = BufReader::new(file);
+        let mut line = String::from("");
+        for line_result in reader.lines() {
+            if line_result.is_ok() {
+                line = line_result.unwrap();
+                println!("==> Line '{}'", line);
+            }
+            else {
+                return Err(format!("Unable to read from {}", dump_name(name)));
+            }
+        }
+        let filetree_info = filetree_info::FileTreeInfo::from(&line)?;
+        result = filetree_info.height;
+    }
+    else {
+        println!("Generate dump for {}", name);
+        let analyse = analyse(name)?;
+        result = analyse.height;
+    }
+    Ok(result)
+}
+
 fn check_directory(name: &str ) -> Result<bool, String> {
 
     let check = fs::exists(name);
@@ -150,6 +183,8 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     if result.is_err() {
         return Err(result.err().unwrap().into());
     }
+
+    println!("Dump result {}", generate_dump(&configuration.reference_path).unwrap());
 
     let analyse_result = analyse(&configuration.reference_path);
     let analysed = match analyse_result {
