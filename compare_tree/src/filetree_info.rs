@@ -17,6 +17,7 @@
 
 use std::fmt;
 use crate::sha1;
+use std::str::FromStr;
 
 #[derive(Debug)]
 #[derive(PartialEq, PartialOrd)]
@@ -33,6 +34,46 @@ impl fmt::Display for FileTreeInfo {
     }
 }
 
+impl FileTreeInfo {
+    pub fn from(v: &str) -> Result<FileTreeInfo, String> {
+        let space_pos_result = v.find(' ');
+        let space_pos = match space_pos_result {
+            Some(i) => i,
+            None => return Err(format!("Space not found in {}", v))
+        };
+
+        let last_comma_pos_result = v.rfind(", ");
+        let last_comma_pos = match last_comma_pos_result {
+            Some(i) => i,
+            None => return Err(format!("Last ',' not found in {}", v))
+        };
+        let nb_item_slice = &v[last_comma_pos + 2..];
+        let nb_item_result = u32::from_str(nb_item_slice);
+        let nb_item = match nb_item_result {
+            Ok(v) => v,
+            Err(e) => return Err(format!("Filetree_info.nb_item : Error {} when converting {} to u32", e, nb_item_slice))
+        };
+        let height_comma_pos_result = v[0..last_comma_pos - 1].rfind(", ");
+        let height_comma_pos = match height_comma_pos_result {
+            Some(i) => i,
+            None => return Err(format!("',' following name not found in {}", v))
+        };
+        let height_slice = &v[height_comma_pos + 2..last_comma_pos];
+        let height_result = u32::from_str(height_slice);
+        let height = match height_result {
+            Ok(v) => v,
+            Err(e) => return Err(format!("Filetree_info.height : Error {} when converting {} to u32 {} {}", e, height_slice, height_comma_pos, last_comma_pos))
+        };
+        let result = FileTreeInfo {
+            name: v[space_pos + 1..height_comma_pos].to_string(),
+            height: height,
+            sha1: sha1::Sha1Key::from_string(&v[0..space_pos])?,
+            nb_item: nb_item
+        };
+        Ok(result)
+
+    }
+}
 pub fn equivalent(op1: &FileTreeInfo, op2: &FileTreeInfo) -> bool {
     op1.height == op2.height && op1.sha1 == op2.sha1 && op1.nb_item == op2.nb_item
 }
@@ -120,5 +161,15 @@ mod test {
             sha1: sha1::compute_sha1(vec!(0))
         };
         assert!(filetree_info7 > filetree_info8);
+    }
+    #[test]
+    fn check_from_string() {
+        let ref_filetree_info = FileTreeInfo {
+            name: "filetree".to_string(),
+            height: 8,
+            sha1: sha1::compute_sha1(vec!(0)),
+            nb_item: 10
+        };
+        assert_eq!( ref_filetree_info, FileTreeInfo::from("EDA2784F420E43F652B521D7B0CFF93F5BA93C9D filetree, 8, 10").expect("Error during string conversion"));
     }
 }
