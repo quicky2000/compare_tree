@@ -33,6 +33,22 @@ impl Sha1Key {
         Sha1Key {words: words}
     }
 
+    pub fn from_string(v: &str) -> Result<Sha1Key, String> {
+        let mut result = Sha1Key {words: [0, 0, 0, 0, 0]};
+        if v.len() != 40 {
+            return Err(format!("Bad SHA1 string length {} vs 40", v.len()));
+        }
+        for (i, el) in result.words.iter_mut().enumerate() {
+            let slice = &v[32 - i * 8..40 - i * 8];
+            let conversion_result = u32::from_str_radix(slice, 16);
+            *el = match conversion_result {
+                Ok(x) => x,
+                Err(e) => return Err(format!("Sha1Key: Error {} when converting {} to u32", e, slice))
+            };
+        }
+        Ok(result)
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut result = Vec::new();
         self.words.iter().for_each(|x| result.extend(x.to_le_bytes()));
@@ -260,6 +276,11 @@ mod test {
     fn test_sha1_key_display() {
         let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
         assert_eq!(format!("{}", key_ref), "0000000400000003000000020000000100000000");
+    }
+    #[test]
+    fn test_sha1_from_string() {
+        let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
+        assert_eq!(key_ref, Sha1Key::from_string("0000000400000003000000020000000100000000").expect("Error during conversion"));
     }
     #[test]
     fn test_sha1_key_from_array() {
