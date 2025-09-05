@@ -121,7 +121,7 @@ fn analyse(name: &str) -> Result<filetree_info::FileTreeInfo, String> {
 }
 
 fn generate_dump(name: &str) -> Result<u32, String> {
-    let mut result: u32 = 0;
+    let result: u32;
     let check = fs::exists(dump_name(name));
     if check.is_ok() && check.unwrap() {
         println!("Parse existing dump for {}", name);
