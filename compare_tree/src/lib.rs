@@ -111,6 +111,20 @@ fn dump_name(name: & str) -> String {
     return filename;
 }
 
+fn dump_dir(name: & str) -> String {
+    let mut filename = String::from(name);
+    filename.push_str("_dumps");
+    return filename;
+}
+
+fn split_name(name: &str, height: u32) -> String {
+    let mut filename = dump_dir(name);
+    filename.push('/');
+    filename.push_str(&height.to_string());
+    filename.push_str(".txt");
+    return filename;
+}
+
 fn analyse(name: &str) -> Result<filetree_info::FileTreeInfo, String> {
     let filename = dump_name(name);
     let file = File::create(&filename).expect(format!("Unable to create file {}", filename).as_str());
@@ -148,10 +162,62 @@ fn generate_dump(name: &str) -> Result<u32, String> {
         println!("Generate dump for {}", name);
         let analyse = analyse(name)?;
         result = analyse.height;
+        let check = fs::exists(dump_dir(name));
+        if check.is_err() {
+                return Err(format!("Unable to determine if directory {} exists", dump_dir(name)));
+        }
+        if check.unwrap() {
+            let rm_result = fs::remove_dir_all(dump_dir(name));
+            if rm_result.is_err() {
+                return Err(format!("Unable to clean directory {}", dump_dir(name)));
+            }
+        }
     }
     Ok(result)
 }
 
+fn generate_split(name: &str, height: u32) -> Result<(), String> {
+        println!("==> Prepare split");
+        let check = fs::exists(dump_dir(name));
+        if check.is_err() {
+                return Err(format!("Unable to determine if directory {} exists", dump_dir(name)));
+        }
+        if !check.unwrap() {
+            let rm_result = fs::create_dir(dump_dir(name));
+            if rm_result.is_err() {
+                return Err(format!("Unable to create directory {}", dump_dir(name)));
+            }
+
+            let mut files = Vec::new();
+            for i in 0..height + 1 {
+                let filename = split_name(name, i);
+                println!("==> Create split {filename}");
+                let file = File::create(&filename).expect(format!("Unable to create file {}", &filename).as_str());
+                files.push(BufWriter::new(file));
+            }
+            let file_result = File::open(dump_name(name));
+            let file = match file_result {
+                Ok(f) => f,
+                Err(e) => return Err(format!("Unable to open file {} {}", dump_name(name), e))
+            };
+            let reader = BufReader::new(file);
+            for line_result in reader.lines() {
+                let line = match line_result {
+                    Ok(l) => l,
+                    Err(e) => return Err(format!("Unable to read from {} : {}", dump_name(name), e))
+                };
+                println!("==> Dispatching '{}'", line);
+                let filetree_info = filetree_info::FileTreeInfo::from(&line)?;
+                assert!((filetree_info.height as usize) < files.len());
+                let write_result = files[filetree_info.height as usize].write(format!("{}\n", filetree_info).as_bytes());
+                if write_result.is_err() {
+                    return Err(format!("Unable to write {} in {}", filetree_info, split_name(name, filetree_info.height)).into());
+                }
+            }
+
+        }
+        Ok(())
+}
 fn check_directory(name: &str ) -> Result<bool, String> {
 
     let check = fs::exists(name);
@@ -184,7 +250,11 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
         return Err(result.err().unwrap().into());
     }
 
-    println!("Dump result {}", generate_dump(&configuration.reference_path).unwrap());
+    let height_ref = generate_dump(&configuration.reference_path)?;
+    let height_other = generate_dump(&configuration.other_path)?;
+    println!("Dump result {} vs {}", height_ref, height_other);
+
+    generate_split(&configuration.reference_path, height_ref);
 
     let analyse_result = analyse(&configuration.reference_path);
     let analysed = match analyse_result {
