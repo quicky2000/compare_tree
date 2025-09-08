@@ -20,7 +20,7 @@ use crate::sha1;
 use std::str::FromStr;
 
 #[derive(Debug)]
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, PartialOrd, Eq, Ord)]
 pub struct FileTreeInfo {
     pub sha1: sha1::Sha1Key,
     pub height: u32,

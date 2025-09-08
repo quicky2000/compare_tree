@@ -188,33 +188,75 @@ fn generate_split(name: &str, height: u32) -> Result<(), String> {
                 return Err(format!("Unable to create directory {}", dump_dir(name)));
             }
 
-            let mut files = Vec::new();
-            for i in 0..height + 1 {
-                let filename = split_name(name, i);
-                println!("==> Create split {filename}");
-                let file = File::create(&filename).expect(format!("Unable to create file {}", &filename).as_str());
-                files.push(BufWriter::new(file));
-            }
-            let file_result = File::open(dump_name(name));
-            let file = match file_result {
-                Ok(f) => f,
-                Err(e) => return Err(format!("Unable to open file {} {}", dump_name(name), e))
-            };
-            let reader = BufReader::new(file);
-            for line_result in reader.lines() {
-                let line = match line_result {
-                    Ok(l) => l,
-                    Err(e) => return Err(format!("Unable to read from {} : {}", dump_name(name), e))
+            // Create a block to be sure writers are closed at the end
+            {
+                let mut files = Vec::new();
+
+                // Create writers
+                for i in 0..height + 1 {
+                    let filename = split_name(name, i);
+                    println!("==> Create split {filename}");
+                    let file = File::create(&filename).expect(format!("Unable to create file {}", &filename).as_str());
+                    files.push(BufWriter::new(file));
+                }
+
+                let file_result = File::open(dump_name(name));
+                let file = match file_result {
+                    Ok(f) => f,
+                    Err(e) => return Err(format!("Unable to open file {} {}", dump_name(name), e))
                 };
-                println!("==> Dispatching '{}'", line);
-                let filetree_info = filetree_info::FileTreeInfo::from(&line)?;
-                assert!((filetree_info.height as usize) < files.len());
-                let write_result = files[filetree_info.height as usize].write(format!("{}\n", filetree_info).as_bytes());
-                if write_result.is_err() {
-                    return Err(format!("Unable to write {} in {}", filetree_info, split_name(name, filetree_info.height)).into());
+                // Populate files with content of dump
+                let reader = BufReader::new(file);
+                for line_result in reader.lines() {
+                    let line = match line_result {
+                        Ok(l) => l,
+                        Err(e) => return Err(format!("Unable to read from {} : {}", dump_name(name), e))
+                    };
+                    println!("==> Dispatching '{}'", line);
+                    let filetree_info = filetree_info::FileTreeInfo::from(&line)?;
+                    assert!((filetree_info.height as usize) < files.len());
+                    let write_result = files[filetree_info.height as usize].write(format!("{}\n", filetree_info).as_bytes());
+                    if write_result.is_err() {
+                        return Err(format!("Unable to write {} in {}", filetree_info, split_name(name, filetree_info.height)));
+                    }
                 }
             }
-
+            // Sort splitted dumps
+            for i in 0..height + 1 {
+                let filename = split_name(name, i);
+                println!("==> Sort split {filename}");
+                let mut fileinfos = Vec::new();
+                {
+                    let file_result = File::open(&filename);
+                    let file = match file_result {
+                        Ok(f) => f,
+                        Err(e) => return Err(format!("Unable to open file {} {}", dump_name(name), e))
+                    };
+                    let reader = BufReader::new(file);
+                    for line_result in reader.lines() {
+                        let line = match line_result {
+                            Ok(l) => l,
+                            Err(e) => return Err(format!("Unable to read from {} : {}", dump_name(name), e))
+                        };
+                        fileinfos.push(filetree_info::FileTreeInfo::from(&line)?);
+                    }
+                }
+                fileinfos.sort();
+                let mut path = PathBuf::new();
+                path.push(&filename);
+                let remove_result = fs::remove_file(path);
+                if remove_result.is_err() {
+                    return Err(format!("Unable to remove {} for sort", filename));
+                }
+                let file = File::create(&filename).expect(format!("Unable to create file {}", &filename).as_str());
+                let mut writer = BufWriter::new(file);
+                for item in fileinfos.iter() {
+                    let write_result = writer.write(format!("{}\n", item).as_bytes());
+                    if write_result.is_err() {
+                        return Err(format!("Unable to write {} in {}", item, filename));
+                    }
+                }
+            }
         }
         Ok(())
 }
@@ -254,7 +296,8 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     let height_other = generate_dump(&configuration.other_path)?;
     println!("Dump result {} vs {}", height_ref, height_other);
 
-    generate_split(&configuration.reference_path, height_ref);
+    generate_split(&configuration.reference_path, height_ref)?;
+    generate_split(&configuration.other_path, height_other)?;
 
     let analyse_result = analyse(&configuration.reference_path);
     let analysed = match analyse_result {
