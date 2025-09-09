@@ -20,6 +20,7 @@ use std::fs::File;
 use std::io::Read;
 use std::io::BufWriter;
 use std::io::BufReader;
+use std::io;
 use std::path::PathBuf;
 use std::io::prelude::*;
 
@@ -279,6 +280,72 @@ fn check_directory(name: &str ) -> Result<bool, String> {
     Ok(true)
 }
 
+fn consume(io_iter: &mut io::Lines<io::BufReader<File>>) ->Result<String, String> {
+    let result_iter = io_iter.next();
+    if result_iter.is_none() {
+        return Ok(String::from(""));
+    }
+    let result = match result_iter.unwrap() {
+            Ok(s) => s,
+            Err(e) => return Err(format!("Unable to read : {}", e))
+        };
+    return Ok(result);
+}
+
+fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
+                mut other: io::Lines<io::BufReader<File>>,
+                to_remove: &mut Vec<String>) -> Result<(), String> {
+    let mut ref_item = filetree_info::FileTreeInfo::from(&consume(&mut reference)?)?;
+    let mut other_line = consume(&mut other)?;
+    loop {
+        // Check if we reach end of one of the files
+        if other_line == "" {
+            return Ok(())
+        }
+        let other_item = filetree_info::FileTreeInfo::from(&other_line)?;
+        if to_remove.iter().any(|x| x.len() <= other_item.name.len() && x == &other_item.name[0..x.len()]) {
+            other_line = consume(&mut other)?;
+            continue;
+        }
+        if ref_item.sha1 == other_item.sha1 {
+            to_remove.push(other_item.name);
+            other_line = consume(&mut other)?;
+        }
+        else if ref_item.sha1 < other_item.sha1 {
+            let ref_line = consume(&mut reference)?;
+            if ref_line == "" {
+                return Ok(());
+            }
+            ref_item = filetree_info::FileTreeInfo::from(&ref_line)?;
+        }
+        else {
+            other_line = consume(&mut other)?;
+        }
+    }
+}
+
+fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<String>, String> {
+    let mut to_remove = Vec::new();
+    for i in 0..height + 1 {
+        let filename = split_name(reference, i);
+        let file_result = File::open(&filename);
+        let file = match file_result {
+                Ok(f) => f,
+                Err(e) => return Err(format!("Unable to open file {} {}", filename, e))
+        };
+        let reader_ref = BufReader::new(file);
+        let filename = split_name(other, i);
+        let file_result = File::open(&filename);
+        let file = match file_result {
+                Ok(f) => f,
+                Err(e) => return Err(format!("Unable to open file {} {}", filename, e))
+        };
+        let reader_other = BufReader::new(file);
+        compare_iter(reader_ref.lines(), reader_other.lines(), & mut to_remove)?;
+    }
+    Ok(to_remove)
+}
+
 pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     println!("Reference path {}", configuration.reference_path);
     println!("Other path {}", configuration.other_path);
@@ -296,22 +363,15 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     let height_other = generate_dump(&configuration.other_path)?;
     println!("Dump result {} vs {}", height_ref, height_other);
 
+    let common_height = if height_ref > height_other {height_other} else {height_ref};
+    println!("Comparison will be done until height {}", common_height);
+
     generate_split(&configuration.reference_path, height_ref)?;
     generate_split(&configuration.other_path, height_other)?;
 
-    let analyse_result = analyse(&configuration.reference_path);
-    let analysed = match analyse_result {
-        Ok(k) => k,
-        Err(e) => return Err(e.into())
-    };
-    println!("Reference : {}", analysed);
+    let result = compare(&configuration.reference_path, &configuration.other_path, common_height)?;
 
-    let analyse_result = analyse(&configuration.other_path);
-    let analysed = match analyse_result {
-        Ok(k) => k,
-        Err(e) => return Err(e.into())
-    };
-    println!("Other : {}", analysed);
+    result.iter().for_each(|s| println!("TO REMOVE {}", s));
 
     Ok(())
 }
