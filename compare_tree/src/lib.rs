@@ -326,7 +326,8 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
 
 fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<String>, String> {
     let mut to_remove = Vec::new();
-    for i in 0..height + 1 {
+    for i in (0..height + 1).rev() {
+        println!("=>Analyse height {}", i);
         let filename = split_name(reference, i);
         let file_result = File::open(&filename);
         let file = match file_result {
