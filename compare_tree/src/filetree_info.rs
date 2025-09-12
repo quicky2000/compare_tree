@@ -73,9 +73,10 @@ impl FileTreeInfo {
         Ok(result)
 
     }
-}
-pub fn equivalent(op1: &FileTreeInfo, op2: &FileTreeInfo) -> bool {
-    op1.height == op2.height && op1.sha1 == op2.sha1 && op1.nb_item == op2.nb_item
+    pub fn equivalent(&self, op2: &FileTreeInfo) -> bool {
+        self.height == op2.height && self.sha1 == op2.sha1 && self.nb_item == op2.nb_item
+    }
+
 }
 
 #[cfg(test)]

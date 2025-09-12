@@ -491,7 +491,7 @@ mod test {
 
     #[test]
     fn test_check_analyse_empty_dir2() {
-        assert!(filetree_info::equivalent(&analyse_empty_dir("empty1"), &analyse_empty_dir("empty2")));
+        assert!(&analyse_empty_dir("empty1").equivalent(&analyse_empty_dir("empty2")));
     }
 
     #[test]
@@ -505,7 +505,7 @@ mod test {
             assert!(file2.write_all(b"Hello world!").is_ok());
             assert!(fs::create_dir("other/empty").is_ok());
         }
-        assert!(filetree_info::equivalent(&analyse("reference").expect("Error with reference"), &analyse("other").expect("Error with other")));
+        assert!(&analyse("reference").expect("Error with reference").equivalent(&analyse("other").expect("Error with other")));
         assert!(fs::remove_dir_all("reference").is_ok());
         assert!(fs::remove_dir_all("other").is_ok());
         assert!(fs::remove_file(dump_name("reference")).is_ok());
