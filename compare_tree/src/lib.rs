@@ -307,7 +307,7 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
             other_line = consume(&mut other)?;
             continue;
         }
-        if ref_item.sha1 == other_item.sha1 {
+        if ref_item.equivalent(&other_item) {
             to_remove.push(other_item.name);
             other_line = consume(&mut other)?;
         }
