@@ -628,5 +628,109 @@ mod test {
         assert!(fs::remove_file(ref_name).is_ok());
         assert!(fs::remove_file(other_name).is_ok());
     }
+    fn create_dump(name: &str, list: Vec::<(String, String)>) {
+            let mut dump = File::create(name).expect("Unable to create dump");
+            list.iter().for_each(|(item_name, sha1)|{
+                                 dump.write(format!("{}\n",
+                                                    filetree_info::FileTreeInfo{name: item_name.to_string(),
+                                                                                height: 0,
+                                                                                nb_item: 0,
+                                                                                sha1: sha1::Sha1Key::from_string(sha1).expect("From_string error")
+                                                                               }
+                                                   ).as_bytes()
+                                           ).expect("Error during write of ref dump");}
+                                );
+    }
+    fn compare_generic(ref_name: &str, ref_list: Vec::<(String, String)>,
+                       oth_name: &str, oth_list: Vec::<(String, String)>,
+                       ref_to_remove: Vec<String>
+                      ) {
+        create_dump(ref_name, ref_list);
+        create_dump(oth_name, oth_list);
+        let ref_dump = File::open(ref_name).expect("Unable to open ref dump");
+        let oth_dump = File::open(oth_name).expect("Unable to open other dump");
+        let ref_bufreader = BufReader::new(ref_dump);
+        let oth_bufreader = BufReader::new(oth_dump);
+        let mut to_remove = Vec::<String>::new();
+        compare_iter(ref_bufreader.lines(), oth_bufreader.lines(), &mut to_remove).expect("Error during comparison");
+        assert_eq!(ref_to_remove, to_remove);
+        assert!(fs::remove_file(ref_name).is_ok());
+        assert!(fs::remove_file(oth_name).is_ok());
+    }
+    #[test]
+    fn test_compare_ref1() {
+        compare_generic("ref_dump5.txt", vec!(("file_1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                              ("file_2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                              ("file_3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())
+                                             ),
+                        "oth_dump5.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
+                        vec!("other1".to_string())
+                       );
+    }
+    #[test]
+    fn test_compare_ref2() {
+        compare_generic("ref_dump6.txt", vec!(("file_1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                              ("file_2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                              ("file_3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())
+                                             ),
+                        "oth_dump6.txt", vec!(("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string())),
+                        vec!("other2".to_string())
+                       );
+    }
+    #[test]
+    fn test_compare_ref3() {
+        compare_generic("ref_dump7.txt", vec!(("file_1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                              ("file_2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                              ("file_3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())
+                                             ),
+                        "oth_dump7.txt", vec!(("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                        vec!("other3".to_string())
+                       );
+    }
+    #[test]
+    fn test_compare_other1() {
+        compare_generic("ref_dump8.txt", vec!(("file_1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
+                        "oth_dump8.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                              ("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                              ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                        vec!("other1".to_string())
+                       );
+    }
+    #[test]
+    fn test_compare_other2() {
+        compare_generic("ref_dump9.txt", vec!(("file_1".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string())),
+                        "oth_dump9.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                              ("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                              ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                        vec!("other2".to_string())
+                       );
+    }
+    #[test]
+    fn test_compare_other3() {
+        compare_generic("ref_dump10.txt", vec!(("file_1".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                        "oth_dump10.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                               ("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                               ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                        vec!("other3".to_string())
+                       );
+    }
+    #[test]
+    fn test_compare_several_other1() {
+        compare_generic("ref_dump11.txt", vec!(("file_1".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                        "oth_dump11.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                               ("other2".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string()),
+                                               ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                        vec!("other2".to_string(), "other3".to_string())
+                       );
+    }
+    #[test]
+    fn test_compare_several_other2() {
+        compare_generic("ref_dump12.txt", vec!(("file_1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
+                        "oth_dump12.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                               ("other2".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                               ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                        vec!("other1".to_string(), "other2".to_string())
+                       );
+    }
 }
 
