@@ -531,68 +531,17 @@ mod test {
     }
     #[test]
     fn test_compare_no_common1() {
-        {
-            let mut ref_dump = File::create("ref_dump.txt").expect("Unable to create ref_dump.txt");
-            ref_dump.write(format!("{}\n",
-                                   filetree_info::FileTreeInfo{name: "toto".to_string(),
-                                                               height: 0,
-                                                               nb_item: 0,
-                                                               sha1: sha1::Sha1Key::from_string("0000000400000003000000020000000100000000").expect("From_string error")
-                                                              }
-                                   ).as_bytes()
-                          ).expect("Error during write of ref_dump.txt");
-            let mut other_dump = File::create("other_dump.txt").expect("Unable to create other_dump.txt");
-            other_dump.write(format!("{}\n",
-                                   filetree_info::FileTreeInfo{name: "tutu".to_string(),
-                                                               height: 0,
-                                                               nb_item: 0,
-                                                               sha1: sha1::Sha1Key::from_string("0000000F00000003000000020000000100000000").expect("From_string error")
-                                                              }
-                                   ).as_bytes()
-                          ).expect("Error during write of other_dump.txt");
-        }
-        let ref_dump = File::open("ref_dump.txt").expect("Unable to open ref_dump.txt");
-        let ref_bufreader = BufReader::new(ref_dump);
-        let other_dump = File::open("other_dump.txt").expect("Unable to open other_dump.txt");
-        let other_bufreader = BufReader::new(other_dump);
-        let mut to_remove = Vec::<String>::new();
-        compare_iter(ref_bufreader.lines(), other_bufreader.lines(), &mut to_remove).expect("Error during comparison");
-        assert_eq!(Vec::<String>::new(), to_remove);
-        assert!(fs::remove_file("ref_dump.txt").is_ok());
-        assert!(fs::remove_file("other_dump.txt").is_ok());
+        compare_generic("ref_dump1.txt", vec!(("toto".to_string(), "0000000400000003000000020000000100000000".to_string())),
+                        "oth_dump1.txt", vec!(("tutu".to_string(), "0000000F00000003000000020000000100000000".to_string())),
+                        vec!()
+                       );
     }
     #[test]
     fn test_compare_common() {
-        {
-            let mut ref_dump = File::create("ref_dump2.txt").expect("Unable to create ref_dump2.txt");
-            ref_dump.write(format!("{}\n",
-                                   filetree_info::FileTreeInfo{name: "toto".to_string(),
-                                                               height: 0,
-                                                               nb_item: 0,
-                                                               sha1: sha1::Sha1Key::from_string("0000000400000003000000020000000100000000").expect("From_string error")
-                                                              }
-                                   ).as_bytes()
-                          ).expect("Error during write of ref_dump2.txt");
-            let mut other_dump = File::create("other_dump2.txt").expect("Unable to create other_dump2.txt");
-            other_dump.write(format!("{}\n",
-                                   filetree_info::FileTreeInfo{name: "tutu".to_string(),
-                                                               height: 0,
-                                                               nb_item: 0,
-                                                               sha1: sha1::Sha1Key::from_string("0000000400000003000000020000000100000000").expect("From_string error")
-                                                              }
-                                   ).as_bytes()
-                          ).expect("Error during write of other_dump2.txt");
-        }
-        let ref_dump = File::open("ref_dump2.txt").expect("Unable to open ref_dump2.txt");
-        let ref_bufreader = BufReader::new(ref_dump);
-        let other_dump = File::open("other_dump2.txt").expect("Unable to open other_dump2.txt");
-        let other_bufreader = BufReader::new(other_dump);
-        let mut to_remove = Vec::<String>::new();
-        compare_iter(ref_bufreader.lines(), other_bufreader.lines(), &mut to_remove).expect("Error during comparison");
-        let ref_vec: Vec::<String> = vec![String::from("tutu")];
-        assert_eq!(ref_vec, to_remove);
-        assert!(fs::remove_file("ref_dump2.txt").is_ok());
-        assert!(fs::remove_file("other_dump2.txt").is_ok());
+        compare_generic("ref_dump2.txt", vec!(("toto".to_string(), "0000000400000003000000020000000100000000".to_string())),
+                        "oth_dump2.txt", vec!(("tutu".to_string(), "0000000400000003000000020000000100000000".to_string())),
+                        vec!("tutu".to_string())
+                       );
     }
     #[test]
     fn test_compare_false_common() {
