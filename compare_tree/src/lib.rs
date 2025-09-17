@@ -38,7 +38,7 @@ fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_i
         Err(_e) => return Err(format!("problem with dir_iter on {}", string_path).into())
     };
     let mut nb_item: u32 = 0;
-    let mut height: u32 = 0;
+    let mut height: u32 = 1;
     let mut keys = Vec::new();
 
     // List directory content
@@ -194,7 +194,7 @@ fn generate_split(name: &str, height: u32) -> Result<(), String> {
                 let mut files = Vec::new();
 
                 // Create writers
-                for i in 0..height + 1 {
+                for i in 1..height + 1 {
                     let filename = split_name(name, i);
                     println!("==> Create split {filename}");
                     let file = File::create(&filename).expect(format!("Unable to create file {}", &filename).as_str());
@@ -215,15 +215,15 @@ fn generate_split(name: &str, height: u32) -> Result<(), String> {
                     };
                     println!("==> Dispatching '{}'", line);
                     let filetree_info = filetree_info::FileTreeInfo::from(&line)?;
-                    assert!((filetree_info.height as usize) < files.len());
-                    let write_result = files[filetree_info.height as usize].write(format!("{}\n", filetree_info).as_bytes());
+                    assert!(((filetree_info.height - 1) as usize) < files.len());
+                    let write_result = files[(filetree_info.height - 1) as usize].write(format!("{}\n", filetree_info).as_bytes());
                     if write_result.is_err() {
                         return Err(format!("Unable to write {} in {}", filetree_info, split_name(name, filetree_info.height)));
                     }
                 }
             }
             // Sort splitted dumps
-            for i in 0..height + 1 {
+            for i in 1..height + 1 {
                 let filename = split_name(name, i);
                 println!("==> Sort split {filename}");
                 let mut fileinfos = Vec::new();
@@ -327,7 +327,7 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
 
 fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<(String, String)>, String> {
     let mut to_remove = Vec::new();
-    for i in (0..height + 1).rev() {
+    for i in (1..height + 1).rev() {
         println!("=>Analyse height {}", i);
         let filename = split_name(reference, i);
         let file_result = File::open(&filename);
@@ -487,7 +487,7 @@ mod test {
     fn test_check_analyse_empty_dir() {
         let my_info = filetree_info::FileTreeInfo {
             name: "empty".to_string(),
-            height: 0,
+            height: 1,
             sha1: sha1::compute_sha1(vec!(0,0,0,0)),
             nb_item: 0
         };
@@ -529,7 +529,7 @@ mod test {
             let mut file3 = File::create("reference2/file3.txt").expect("Unable to create file3");
             assert!(file3.write_all(b"Hello world!").is_ok());
         }
-        assert_eq!(2, analyse("reference2").expect("Error with reference").height);
+        assert_eq!(3, analyse("reference2").expect("Error with reference").height);
         assert!(fs::remove_dir_all("reference2").is_ok());
         assert!(fs::remove_file(dump_name("reference2")).is_ok());
     }
