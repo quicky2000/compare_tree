@@ -294,7 +294,7 @@ fn consume(io_iter: &mut io::Lines<io::BufReader<File>>) ->Result<String, String
 
 fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
                 mut other: io::Lines<io::BufReader<File>>,
-                to_remove: &mut Vec<String>) -> Result<(), String> {
+                to_remove: &mut Vec<(String, String)>) -> Result<(), String> {
     // File can never be empty as splitted files are created when encoutering a FileTreeInfo
     let mut ref_item = filetree_info::FileTreeInfo::from(&consume(&mut reference)?)?;
     let mut other_line = consume(&mut other)?;
@@ -304,12 +304,12 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
             return Ok(())
         }
         let other_item = filetree_info::FileTreeInfo::from(&other_line)?;
-        if to_remove.iter().any(|x| x.len() <= other_item.name.len() && x == &other_item.name[0..x.len()]) {
+        if to_remove.iter().any(|(_, x)| x.len() <= other_item.name.len() && x == &other_item.name[0..x.len()]) {
             other_line = consume(&mut other)?;
             continue;
         }
         if ref_item.equivalent(&other_item) {
-            to_remove.push(other_item.name);
+            to_remove.push((ref_item.name.clone(), other_item.name));
             other_line = consume(&mut other)?;
         }
         else if ref_item.sha1 < other_item.sha1 {
@@ -325,7 +325,7 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
     }
 }
 
-fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<String>, String> {
+fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<(String, String)>, String> {
     let mut to_remove = Vec::new();
     for i in (0..height + 1).rev() {
         println!("=>Analyse height {}", i);
@@ -348,7 +348,7 @@ fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<String>, Str
     Ok(to_remove)
 }
 
-fn compare_trees(reference: &str, other: &str) -> Result<Vec<String>, String> {
+fn compare_trees(reference: &str, other: &str) -> Result<Vec<(String, String)>, String> {
     let height_ref = generate_dump(reference)?;
     let height_other = generate_dump(other)?;
     println!("Dump result {} vs {}", height_ref, height_other);
@@ -377,7 +377,7 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
 
     let result = compare_trees(&configuration.reference_path, &configuration.other_path)?;
 
-    result.iter().for_each(|s| println!("TO REMOVE {}", s));
+    result.iter().for_each(|(reference, other)| println!("{} TO REMOVE {}", reference, other));
 
     Ok(())
 }
@@ -544,7 +544,7 @@ mod test {
     fn test_compare_common() {
         compare_generic("ref_dump2.txt", vec!(("toto".to_string(), "0000000400000003000000020000000100000000".to_string())),
                         "oth_dump2.txt", vec!(("tutu".to_string(), "0000000400000003000000020000000100000000".to_string())),
-                        vec!("tutu".to_string())
+                        vec!(("toto".to_string(), "tutu".to_string()))
                        );
     }
     #[test]
@@ -575,9 +575,9 @@ mod test {
         let ref_bufreader = BufReader::new(ref_dump);
         let other_dump = File::open(other_name).expect("Unable to open other dump");
         let other_bufreader = BufReader::new(other_dump);
-        let mut to_remove = Vec::<String>::new();
+        let mut to_remove = Vec::<(String, String)>::new();
         compare_iter(ref_bufreader.lines(), other_bufreader.lines(), &mut to_remove).expect("Error during comparison");
-        assert_eq!(Vec::<String>::new(), to_remove);
+        assert_eq!(Vec::<(String, String)>::new(), to_remove);
         assert!(fs::remove_file(ref_name).is_ok());
         assert!(fs::remove_file(other_name).is_ok());
     }
@@ -596,7 +596,7 @@ mod test {
     }
     fn compare_generic(ref_name: &str, ref_list: Vec::<(String, String)>,
                        oth_name: &str, oth_list: Vec::<(String, String)>,
-                       ref_to_remove: Vec<String>
+                       ref_to_remove: Vec<(String, String)>
                       ) {
         create_dump(ref_name, ref_list);
         create_dump(oth_name, oth_list);
@@ -604,7 +604,7 @@ mod test {
         let oth_dump = File::open(oth_name).expect("Unable to open other dump");
         let ref_bufreader = BufReader::new(ref_dump);
         let oth_bufreader = BufReader::new(oth_dump);
-        let mut to_remove = Vec::<String>::new();
+        let mut to_remove = Vec::<(String, String)>::new();
         compare_iter(ref_bufreader.lines(), oth_bufreader.lines(), &mut to_remove).expect("Error during comparison");
         assert_eq!(ref_to_remove, to_remove);
         assert!(fs::remove_file(ref_name).is_ok());
@@ -617,7 +617,7 @@ mod test {
                                               ("file_3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())
                                              ),
                         "oth_dump5.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
-                        vec!("other1".to_string())
+                        vec!(("file_1".to_string(),"other1".to_string()))
                        );
     }
     #[test]
@@ -627,7 +627,7 @@ mod test {
                                               ("file_3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())
                                              ),
                         "oth_dump6.txt", vec!(("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string())),
-                        vec!("other2".to_string())
+                        vec!(("file_2".to_string(), "other2".to_string()))
                        );
     }
     #[test]
@@ -637,7 +637,7 @@ mod test {
                                               ("file_3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())
                                              ),
                         "oth_dump7.txt", vec!(("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
-                        vec!("other3".to_string())
+                        vec!(("file_3".to_string(), "other3".to_string()))
                        );
     }
     #[test]
@@ -646,7 +646,7 @@ mod test {
                         "oth_dump8.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
                                               ("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
                                               ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
-                        vec!("other1".to_string())
+                        vec!(("file_1".to_string(), "other1".to_string()))
                        );
     }
     #[test]
@@ -655,7 +655,7 @@ mod test {
                         "oth_dump9.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
                                               ("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
                                               ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
-                        vec!("other2".to_string())
+                        vec!(("file_1".to_string(), "other2".to_string()))
                        );
     }
     #[test]
@@ -664,7 +664,7 @@ mod test {
                         "oth_dump10.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
                                                ("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
                                                ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
-                        vec!("other3".to_string())
+                        vec!(("file_1".to_string(), "other3".to_string()))
                        );
     }
     #[test]
@@ -673,7 +673,7 @@ mod test {
                         "oth_dump11.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
                                                ("other2".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string()),
                                                ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
-                        vec!("other2".to_string(), "other3".to_string())
+                        vec!(("file_1".to_string(), "other2".to_string()), ("file_1".to_string(), "other3".to_string()))
                        );
     }
     #[test]
@@ -682,7 +682,7 @@ mod test {
                         "oth_dump12.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
                                                ("other2".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
                                                ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
-                        vec!("other1".to_string(), "other2".to_string())
+                        vec!(("file_1".to_string(), "other1".to_string()), ("file_1".to_string(), "other2".to_string()))
                        );
     }
     use std::path::Path;
@@ -702,7 +702,7 @@ mod test {
         });
     }
     #[test]
-    fn create_dummy_file() {
+    fn test_compare_trees() {
         let ref_name = "ref3";
         let oth_name = "oth3";
         create_filetree(ref_name, vec!(("dummy_dir1/dummy_dur2/test.txt".to_string(), "This is a dummy file".to_string()),
@@ -712,7 +712,7 @@ mod test {
                                      ("similar/b.txt".to_string(), "This is a an other dummy file".to_string()),
                                      ("c.txt".to_string(), "This is a an other dummy file".to_string()),
                                     ));
-        assert_eq!(vec!("oth3/similar"), compare_trees(ref_name, oth_name).expect("Error during comparison"));
+        assert_eq!(vec!(("ref3/dummy_dir1/dummy_dur2".to_string(), "oth3/similar".to_string())), compare_trees(ref_name, oth_name).expect("Error during comparison"));
         assert!(fs::remove_dir_all(ref_name).is_ok());
         assert!(fs::remove_dir_all(oth_name).is_ok());
         assert!(fs::remove_dir_all(dump_dir(ref_name)).is_ok());
