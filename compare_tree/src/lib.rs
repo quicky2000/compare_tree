@@ -740,5 +740,27 @@ mod test {
         assert!(fs::remove_file(dump_name(ref_name)).is_ok());
         assert!(fs::remove_file(dump_name(oth_name)).is_ok());
     }
+    #[test]
+    fn test_compare_trees3() {
+        let ref_name = "ref5";
+        let oth_name = "oth5";
+        create_filetree(ref_name, vec!(("dummy_dir1/dummy_dur2/test.txt".to_string(), "This is a dummy file".to_string()),
+                                       ("dummy_dir1/dummy_dur2/test2.txt".to_string(), "This is a an other dummy file".to_string()),
+                                       ("dummy_dir1/c.txt".to_string(), "This is a an other dummy file".to_string()),
+                                      ));
+        create_filetree(oth_name, vec!(("dir/similar/a.txt".to_string(), "This is a dummy file".to_string()),
+                                       ("dir/similar/b.txt".to_string(), "This is a an other dummy file".to_string()),
+                                       ("dir/c.txt".to_string(), "This is a an other dummy file".to_string()),
+                                       ("similar_bis/a.txt".to_string(), "This is a dummy file".to_string()),
+                                       ("similar_bis/b.txt".to_string(), "This is a an other dummy file".to_string()),
+                                      ));
+        assert_eq!(vec!(("ref5/dummy_dir1".to_string(), "oth5/dir".to_string()), ("ref5/dummy_dir1/dummy_dur2".to_string(), "oth5/similar_bis".to_string())), compare_trees(ref_name, oth_name).expect("Error during comparison"));
+        assert!(fs::remove_dir_all(ref_name).is_ok());
+        assert!(fs::remove_dir_all(oth_name).is_ok());
+        assert!(fs::remove_dir_all(dump_dir(ref_name)).is_ok());
+        assert!(fs::remove_dir_all(dump_dir(oth_name)).is_ok());
+        assert!(fs::remove_file(dump_name(ref_name)).is_ok());
+        assert!(fs::remove_file(dump_name(oth_name)).is_ok());
+    }
 }
 
