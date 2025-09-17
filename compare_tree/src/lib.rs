@@ -348,6 +348,20 @@ fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<String>, Str
     Ok(to_remove)
 }
 
+fn compare_trees(reference: &str, other: &str) -> Result<Vec<String>, String> {
+    let height_ref = generate_dump(reference)?;
+    let height_other = generate_dump(other)?;
+    println!("Dump result {} vs {}", height_ref, height_other);
+
+    let common_height = if height_ref > height_other {height_other} else {height_ref};
+    println!("Comparison will be done until height {}", common_height);
+
+    generate_split(reference, height_ref)?;
+    generate_split(other, height_other)?;
+
+    compare(reference, other, common_height)
+}
+
 pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     println!("Reference path {}", configuration.reference_path);
     println!("Other path {}", configuration.other_path);
@@ -361,17 +375,7 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
         return Err(result.err().unwrap().into());
     }
 
-    let height_ref = generate_dump(&configuration.reference_path)?;
-    let height_other = generate_dump(&configuration.other_path)?;
-    println!("Dump result {} vs {}", height_ref, height_other);
-
-    let common_height = if height_ref > height_other {height_other} else {height_ref};
-    println!("Comparison will be done until height {}", common_height);
-
-    generate_split(&configuration.reference_path, height_ref)?;
-    generate_split(&configuration.other_path, height_other)?;
-
-    let result = compare(&configuration.reference_path, &configuration.other_path, common_height)?;
+    let result = compare_trees(&configuration.reference_path, &configuration.other_path)?;
 
     result.iter().for_each(|s| println!("TO REMOVE {}", s));
 
@@ -680,6 +684,41 @@ mod test {
                                                ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
                         vec!("other1".to_string(), "other2".to_string())
                        );
+    }
+    use std::path::Path;
+    fn create_file(name: &str, content: &str) {
+        let path = Path::new(name);
+        let directory = path.parent().expect("Error when calling parent()");
+        fs::create_dir_all(directory).expect("Error when creating directories");
+        let mut output = File::create(name).expect("Unable to create file");
+        output.write(format!("{}", content).as_bytes()).expect("Error during file write");
+    }
+    fn create_filetree(root: &str, list: Vec::<(String, String)>) {
+        list.iter().for_each(|(name, content)| {
+            let mut filename = PathBuf::new();
+            filename.push(root);
+            filename.push(name);
+            create_file(&filename.to_str().expect("error during PathBuf::to_str()"), content);
+        });
+    }
+    #[test]
+    fn create_dummy_file() {
+        let ref_name = "ref3";
+        let oth_name = "oth3";
+        create_filetree(ref_name, vec!(("dummy_dir1/dummy_dur2/test.txt".to_string(), "This is a dummy file".to_string()),
+                                     ("dummy_dir1/dummy_dur2/test2.txt".to_string(), "This is a an other dummy file".to_string()),
+                                    ));
+        create_filetree(oth_name, vec!(("similar/a.txt".to_string(), "This is a dummy file".to_string()),
+                                     ("similar/b.txt".to_string(), "This is a an other dummy file".to_string()),
+                                     ("c.txt".to_string(), "This is a an other dummy file".to_string()),
+                                    ));
+        assert_eq!(vec!("oth3/similar"), compare_trees(ref_name, oth_name).expect("Error during comparison"));
+        assert!(fs::remove_dir_all(ref_name).is_ok());
+        assert!(fs::remove_dir_all(oth_name).is_ok());
+        assert!(fs::remove_dir_all(dump_dir(ref_name)).is_ok());
+        assert!(fs::remove_dir_all(dump_dir(oth_name)).is_ok());
+        assert!(fs::remove_file(dump_name(ref_name)).is_ok());
+        assert!(fs::remove_file(dump_name(oth_name)).is_ok());
     }
 }
 
