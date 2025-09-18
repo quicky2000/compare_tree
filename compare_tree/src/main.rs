@@ -19,10 +19,8 @@ use std::process;
 use compare_tree::Config;
 
 fn main() {
-    println!("Hello, world!");
     let args = args();
-    dbg!(&args);
-
+    //dbg!(&args);
 
     let configuration = Config::build(args).unwrap_or_else(|err| {
         eprintln!("Error when parsing aguments : {err}");

@@ -50,7 +50,7 @@ fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_i
         };
 
         let item_path = item.path();
-        println!("Analyse => {}", item_path.display());
+        if cfg!(test) { println!("Analyse => {}", item_path.display()); }
         let item_path_str = item_path.to_str().ok_or(format!("to_str() issue with {}", item.path().display()))?;
 
         // Get item metadata
@@ -62,7 +62,7 @@ fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_i
 
         // Treat items depending on its type
         if metadata.is_dir() {
-            println!("{} is a directory", item_path_str);
+            if cfg!(test) { println!("{} is a directory", item_path_str); }
             let filetree_info = analyse_filetree(item.path(), output)?;
             nb_item += filetree_info.nb_item;
             // Ignore empty directories
@@ -75,10 +75,10 @@ fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_i
         }
         if metadata.is_file() || metadata.is_symlink() {
             let sha1 = if metadata.is_file() {
-                println!("{} is a file", item_path_str);
+                if cfg!(test) { println!("{} is a file", item_path_str); }
                 compute_file_sha1(item_path_str)?
             } else {
-            println!("{} is a link", item_path_str);
+                if cfg!(test) { println!("{} is a link", item_path_str); }
                 compute_link_sha1(item_path_str)?
 
             };
@@ -94,10 +94,10 @@ fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_i
             nb_item += 1;
         }
     }
-    println!("Analyse => {} items at this level", nb_item);
+    if cfg!(test) { println!("Analyse => {} items at this level", nb_item); }
     // Sort SHA1 keys to be independant of directory listing order
     keys.sort();
-    keys.iter().for_each(|x| println!("{x:?}"));
+    //keys.iter().for_each(|x| println!("{x:?}"));
 
     // Converts all sha1 + number of items to byte in order to compute SHA1 of this directory
     let mut data = Vec::<u8>::new();
@@ -149,7 +149,7 @@ fn generate_dump(name: &str) -> Result<u32, String> {
     let result: u32;
     let check = fs::exists(dump_name(name));
     if check.is_ok() && check.unwrap() {
-        println!("Parse existing dump for {}", name);
+        println!("==> Parse existing dump for {}", name);
         let file_result = File::open(dump_name(name));
         let file = match file_result {
             Ok(f) => f,
@@ -160,7 +160,6 @@ fn generate_dump(name: &str) -> Result<u32, String> {
         for line_result in reader.lines() {
             if line_result.is_ok() {
                 line = line_result.unwrap();
-                println!("==> Line '{}'", line);
             }
             else {
                 return Err(format!("Unable to read from {}", dump_name(name)));
@@ -170,7 +169,7 @@ fn generate_dump(name: &str) -> Result<u32, String> {
         result = filetree_info.height;
     }
     else {
-        println!("Generate dump for {}", name);
+        println!("==> Generate dump for {}", name);
         let analyse = analyse(name)?;
         result = analyse.height;
         let check = fs::exists(dump_dir(name));
@@ -188,7 +187,7 @@ fn generate_dump(name: &str) -> Result<u32, String> {
 }
 
 fn generate_split(name: &str, height: u32) -> Result<(), String> {
-        println!("==> Prepare split");
+        println!("==> Prepare split for '{}'", name);
         let check = fs::exists(dump_dir(name));
         if check.is_err() {
                 return Err(format!("Unable to determine if directory {} exists", dump_dir(name)));
@@ -206,7 +205,7 @@ fn generate_split(name: &str, height: u32) -> Result<(), String> {
                 // Create writers
                 for i in 0..height + 1 {
                     let filename = split_name(name, i);
-                    println!("==> Create split {filename}");
+                    println!("===> Create split {filename}");
                     let file = File::create(&filename).expect(format!("Unable to create file {}", &filename).as_str());
                     files.push(BufWriter::new(file));
                 }
@@ -223,7 +222,6 @@ fn generate_split(name: &str, height: u32) -> Result<(), String> {
                         Ok(l) => l,
                         Err(e) => return Err(format!("Unable to read from {} : {}", dump_name(name), e))
                     };
-                    println!("==> Dispatching '{}'", line);
                     let filetree_info = filetree_info::FileTreeInfo::from(&line)?;
                     assert!((filetree_info.height as usize) < files.len());
                     let write_result = files[filetree_info.height as usize].write(format!("{}\n", filetree_info).as_bytes());
@@ -235,7 +233,7 @@ fn generate_split(name: &str, height: u32) -> Result<(), String> {
             // Sort splitted dumps
             for i in 0..height + 1 {
                 let filename = split_name(name, i);
-                println!("==> Sort split {filename}");
+                println!("===> Sort split {filename}");
                 let mut fileinfos = Vec::new();
                 {
                     let file_result = File::open(&filename);
@@ -336,9 +334,10 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
 }
 
 fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<(String, String)>, String> {
+    println!("==> Analyse");
     let mut to_remove = Vec::new();
     for i in (0..height + 1).rev() {
-        println!("=>Analyse height {}", i);
+        println!("===> Analyse height {}", i);
         let filename = split_name(reference, i);
         let file_result = File::open(&filename);
         let file = match file_result {
@@ -361,10 +360,10 @@ fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<(String, Str
 fn compare_trees(reference: &str, other: &str) -> Result<Vec<(String, String)>, String> {
     let height_ref = generate_dump(reference)?;
     let height_other = generate_dump(other)?;
-    println!("Dump result {} vs {}", height_ref, height_other);
+    println!("==> Dump result {} vs {}", height_ref, height_other);
 
     let common_height = if height_ref > height_other {height_other} else {height_ref};
-    println!("Comparison will be done until height {}", common_height);
+    println!("===> Comparison will be done until height {}", common_height);
 
     generate_split(reference, height_ref)?;
     generate_split(other, height_other)?;
@@ -373,8 +372,8 @@ fn compare_trees(reference: &str, other: &str) -> Result<Vec<(String, String)>, 
 }
 
 pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
-    println!("Reference path {}", configuration.reference_path);
-    println!("Other path {}", configuration.other_path);
+    println!(" Reference path: '{}'", configuration.reference_path);
+    println!("comparison path: '{}'", configuration.other_path);
 
     let result = check_directory(&configuration.reference_path);
     if result.is_err() {
@@ -432,7 +431,7 @@ fn compute_file_sha1(file_name: &str) -> Result<sha1::Sha1Key, String> {
     if read_result.is_err() {
         return Err(format!("Unable to read content of file {file_name}").to_string());
     }
-    println!("{:?}", data);
+    //println!("{:?}", data);
     Ok(sha1::compute_sha1(data))
 }
 
