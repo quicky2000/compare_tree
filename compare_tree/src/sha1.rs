@@ -16,7 +16,7 @@
 */
 use std::fmt;
 
-#[derive(PartialEq, PartialOrd, Eq, Ord)]
+#[derive(PartialEq, PartialOrd, Eq, Ord, Clone)]
 #[derive(Debug)]
 pub struct Sha1Key {
     words: [u32; 5]

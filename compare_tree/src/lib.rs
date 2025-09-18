@@ -73,14 +73,24 @@ fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_i
                 }
             }
         }
-        if metadata.is_file() {
-            println!("{} is a file", item_path_str);
-            keys.push(compute_file_sha1(item_path_str)?);
-            nb_item += 1;
-        }
-        if metadata.is_symlink() {
+        if metadata.is_file() || metadata.is_symlink() {
+            let sha1 = if metadata.is_file() {
+                println!("{} is a file", item_path_str);
+                compute_file_sha1(item_path_str)?
+            } else {
             println!("{} is a link", item_path_str);
-            keys.push(compute_link_sha1(item_path_str)?);
+                compute_link_sha1(item_path_str)?
+
+            };
+            let result = filetree_info::FileTreeInfo{name: String::from(item_path_str),
+                                                     height: 0,
+                                                     sha1: sha1.clone(),
+                                                     nb_item: 0};
+            let write_result = output.write(format!("{}\n", result).as_bytes());
+            if write_result.is_err() {
+                return Err(format!("Unable to write result of {}", item_path_str).into());
+            }
+            keys.push(sha1);
             nb_item += 1;
         }
     }
@@ -194,7 +204,7 @@ fn generate_split(name: &str, height: u32) -> Result<(), String> {
                 let mut files = Vec::new();
 
                 // Create writers
-                for i in 1..height + 1 {
+                for i in 0..height + 1 {
                     let filename = split_name(name, i);
                     println!("==> Create split {filename}");
                     let file = File::create(&filename).expect(format!("Unable to create file {}", &filename).as_str());
@@ -215,15 +225,15 @@ fn generate_split(name: &str, height: u32) -> Result<(), String> {
                     };
                     println!("==> Dispatching '{}'", line);
                     let filetree_info = filetree_info::FileTreeInfo::from(&line)?;
-                    assert!(((filetree_info.height - 1) as usize) < files.len());
-                    let write_result = files[(filetree_info.height - 1) as usize].write(format!("{}\n", filetree_info).as_bytes());
+                    assert!((filetree_info.height as usize) < files.len());
+                    let write_result = files[filetree_info.height as usize].write(format!("{}\n", filetree_info).as_bytes());
                     if write_result.is_err() {
                         return Err(format!("Unable to write {} in {}", filetree_info, split_name(name, filetree_info.height)));
                     }
                 }
             }
             // Sort splitted dumps
-            for i in 1..height + 1 {
+            for i in 0..height + 1 {
                 let filename = split_name(name, i);
                 println!("==> Sort split {filename}");
                 let mut fileinfos = Vec::new();
@@ -327,7 +337,7 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
 
 fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<(String, String)>, String> {
     let mut to_remove = Vec::new();
-    for i in (1..height + 1).rev() {
+    for i in (0..height + 1).rev() {
         println!("=>Analyse height {}", i);
         let filename = split_name(reference, i);
         let file_result = File::open(&filename);
@@ -712,7 +722,9 @@ mod test {
                                      ("similar/b.txt".to_string(), "This is a an other dummy file".to_string()),
                                      ("c.txt".to_string(), "This is a an other dummy file".to_string()),
                                     ));
-        assert_eq!(vec!(("ref3/dummy_dir1/dummy_dur2".to_string(), "oth3/similar".to_string())), compare_trees(ref_name, oth_name).expect("Error during comparison"));
+        assert_eq!(vec!(("ref3/dummy_dir1/dummy_dur2".to_string(), "oth3/similar".to_string()),
+                        ("ref3/dummy_dir1/dummy_dur2/test2.txt".to_string(), "oth3/c.txt".to_string())
+                       ), compare_trees(ref_name, oth_name).expect("Error during comparison"));
         assert!(fs::remove_dir_all(ref_name).is_ok());
         assert!(fs::remove_dir_all(oth_name).is_ok());
         assert!(fs::remove_dir_all(dump_dir(ref_name)).is_ok());
@@ -755,6 +767,35 @@ mod test {
                                        ("similar_bis/b.txt".to_string(), "This is a an other dummy file".to_string()),
                                       ));
         assert_eq!(vec!(("ref5/dummy_dir1".to_string(), "oth5/dir".to_string()), ("ref5/dummy_dir1/dummy_dur2".to_string(), "oth5/similar_bis".to_string())), compare_trees(ref_name, oth_name).expect("Error during comparison"));
+        assert!(fs::remove_dir_all(ref_name).is_ok());
+        assert!(fs::remove_dir_all(oth_name).is_ok());
+        assert!(fs::remove_dir_all(dump_dir(ref_name)).is_ok());
+        assert!(fs::remove_dir_all(dump_dir(oth_name)).is_ok());
+        assert!(fs::remove_file(dump_name(ref_name)).is_ok());
+        assert!(fs::remove_file(dump_name(oth_name)).is_ok());
+    }
+    #[test]
+    fn test_compare_trees4() {
+        let ref_name = "ref6";
+        let oth_name = "oth6";
+        create_filetree(ref_name, vec!(("dummy_dir1/dummy_dur2/test.txt".to_string(), "This is a dummy file".to_string()),
+                                       ("dummy_dir1/dummy_dur2/test2.txt".to_string(), "This is a an other dummy file".to_string()),
+                                       ("dummy_dir1/break.txt".to_string(), "This is a file to break arborescence matching".to_string()),
+                                       ("dummy_dir1/c.txt".to_string(), "This is yet an other dummy file".to_string()),
+                                      ));
+        create_filetree(oth_name, vec!(("dir/similar/a.txt".to_string(), "This is a dummy file".to_string()),
+                                       ("dir/similar/b.txt".to_string(), "This is a an other dummy file".to_string()),
+                                       ("dir/similar/disturb.txt".to_string(), "This is a file to break arborescence matching".to_string()),
+                                       ("dir/c.txt".to_string(), "This is yet an other dummy file".to_string()),
+                                       ("similar_bis/a.txt".to_string(), "This is a dummy file".to_string()),
+                                       ("similar_bis/b.txt".to_string(), "This is a an other dummy file".to_string()),
+                                      ));
+        assert_eq!(vec!(("ref6/dummy_dir1/dummy_dur2".to_string(), "oth6/similar_bis".to_string()),
+                        ("ref6/dummy_dir1/dummy_dur2/test2.txt".to_string(), "oth6/dir/similar/b.txt".to_string()),
+                        ("ref6/dummy_dir1/c.txt".to_string(), "oth6/dir/c.txt".to_string()),
+                        ("ref6/dummy_dir1/break.txt".to_string(), "oth6/dir/similar/disturb.txt".to_string()),
+                        ("ref6/dummy_dir1/dummy_dur2/test.txt".to_string(), "oth6/dir/similar/a.txt".to_string())
+                        ), compare_trees(ref_name, oth_name).expect("Error during comparison"));
         assert!(fs::remove_dir_all(ref_name).is_ok());
         assert!(fs::remove_dir_all(oth_name).is_ok());
         assert!(fs::remove_dir_all(dump_dir(ref_name)).is_ok());
