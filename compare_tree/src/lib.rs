@@ -312,7 +312,8 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
             return Ok(())
         }
         let other_item = filetree_info::FileTreeInfo::from(&other_line)?;
-        if to_remove.iter().any(|(_, x)| x.len() <= other_item.name.len() && x == &other_item.name[0..x.len()]) {
+        let other_len = other_item.name.chars().count();
+        if to_remove.iter().any(|(_, x)| { x.chars().count () <= other_len && x == &(other_item.name.chars().take(x.chars().count()).collect::<String>())}) {
             other_line = consume(&mut other)?;
             continue;
         }
@@ -386,6 +387,7 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
 
     let result = compare_trees(&configuration.reference_path, &configuration.other_path)?;
 
+    println!("==> Results");
     result.iter().for_each(|(reference, other)| println!("{} TO REMOVE {}", reference, other));
 
     Ok(())
@@ -692,6 +694,14 @@ mod test {
                                                ("other2".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
                                                ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
                         vec!(("file_1".to_string(), "other1".to_string()), ("file_1".to_string(), "other2".to_string()))
+                       );
+    }
+    #[test]
+    fn test_compare_utf8() {
+    compare_generic("ref_dump13.txt", vec!(("file_1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
+                    "oth_dump13.txt", vec!(("example.wav".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                           ("temper_in_°.txt".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                    vec!(("file_1".to_string(), "example.wav".to_string()))
                        );
     }
     use std::path::Path;
