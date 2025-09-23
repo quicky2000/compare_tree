@@ -138,7 +138,7 @@ pub fn compute_sha1(data: Vec<u8>) -> Sha1Key {
         if (block_index + 1) * 512 <= size_bit {
             if cfg!(test) { println!("Copy complete block"); }
             for word_index in 0..16 {
-                working_block[word_index] = u32::from_be_bytes(data[word_index * 4..word_index* 4 + 4].try_into().unwrap());
+                working_block[word_index] = u32::from_be_bytes(data[64 * (block_index as usize) + word_index * 4..64 * (block_index as usize)+ word_index* 4 + 4].try_into().unwrap());
             }
             if cfg!(test) { display_block(&working_block); }
         }
@@ -156,7 +156,7 @@ pub fn compute_sha1(data: Vec<u8>) -> Sha1Key {
                 if cfg!(test) { println!("Copy partial block"); }
                 // Work at byte level because number of remaining byte can be different from 4 multiple
                 for byte_index in 0..(remaining_size_bits / 8) {
-                    working_block[(byte_index / 4) as usize] |= u32::from(data[byte_index as usize]) << (24 - 8 * (byte_index % 4 ));
+                    working_block[(byte_index / 4) as usize] |= u32::from(data[64 * (block_index as usize) + byte_index as usize]) << (24 - 8 * (byte_index % 4 ));
                 }
                 if cfg!(test) { display_block(&working_block); }
             }
@@ -353,6 +353,19 @@ mod test {
                                   );
         let data: Vec<u8> = Vec::from("");
         assert_eq!(key_ref, compute_sha1(data));
+    }
+    #[test]
+    fn test_sha1_string7() {
+        let key_ref = Sha1Key::new( 0x534C2949
+                                  , 0xB91667B2
+                                  , 0x67D81BDA
+                                  , 0x37CDA230
+                                  , 0xB5B869BA
+                                  );
+        let data: Vec<u8> = Vec::from("This is a text that is quite long to be sure their will be several block computations in order to have a reliable sha1 test because this is the basis of this software so it is really important to be confident in sha1 implementation");
+        let key = compute_sha1(data);
+        println!("{}", key);
+        assert_eq!(key_ref, key);
     }
     #[test]
     fn test_sha1_order() {
