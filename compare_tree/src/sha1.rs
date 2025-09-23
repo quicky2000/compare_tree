@@ -267,6 +267,13 @@ mod test {
     }
 
     #[test]
+    fn test_sha1_identity() {
+        let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
+        let key_string = format!("{}", key_ref);
+        let new_key = Sha1Key::from_string(&key_string).expect("Error during conversion");
+        assert_eq!(key_ref, new_key)
+    }
+    #[test]
     fn test_sha1_key_compare() {
         let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
         let key_other = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x5);
