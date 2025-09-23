@@ -105,7 +105,7 @@ mod test {
             sha1: sha1::compute_sha1(vec!(0)),
             nb_item: 10
         };
-        assert_eq!(format!("{}", ref_filetree_info), "EDA2784F420E43F652B521D7B0CFF93F5BA93C9D filetree, 8, 10");
+        assert_eq!(format!("{}", ref_filetree_info), "5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F filetree, 8, 10");
     }
     #[test]
     fn check_filetree_info_order() {
@@ -171,6 +171,6 @@ mod test {
             sha1: sha1::compute_sha1(vec!(0)),
             nb_item: 10
         };
-        assert_eq!( ref_filetree_info, FileTreeInfo::from("EDA2784F420E43F652B521D7B0CFF93F5BA93C9D filetree, 8, 10").expect("Error during string conversion"));
+        assert_eq!( ref_filetree_info, FileTreeInfo::from("5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F filetree, 8, 10").expect("Error during string conversion"));
     }
 }

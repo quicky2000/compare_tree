@@ -635,21 +635,21 @@ mod test {
     }
     #[test]
     fn test_compare_ref2() {
-        compare_generic("ref_dump6.txt", vec!(("file_1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
-                                              ("file_2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
-                                              ("file_3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())
+        compare_generic("ref_dump6.txt", vec!(("file_1".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                              ("file_2".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string()),
+                                              ("file_3".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())
                                              ),
-                        "oth_dump6.txt", vec!(("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string())),
+                        "oth_dump6.txt", vec!(("other2".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
                         vec!(("file_2".to_string(), "other2".to_string()))
                        );
     }
     #[test]
     fn test_compare_ref3() {
-        compare_generic("ref_dump7.txt", vec!(("file_1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
-                                              ("file_2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
-                                              ("file_3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())
+        compare_generic("ref_dump7.txt", vec!(("file_1".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                              ("file_2".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string()),
+                                              ("file_3".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())
                                              ),
-                        "oth_dump7.txt", vec!(("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                        "oth_dump7.txt", vec!(("other3".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
                         vec!(("file_3".to_string(), "other3".to_string()))
                        );
     }
@@ -664,28 +664,28 @@ mod test {
     }
     #[test]
     fn test_compare_other2() {
-        compare_generic("ref_dump9.txt", vec!(("file_1".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string())),
-                        "oth_dump9.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
-                                              ("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
-                                              ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+        compare_generic("ref_dump9.txt", vec!(("file_1".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+                        "oth_dump9.txt", vec!(("other1".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                              ("other2".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string()),
+                                              ("other3".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
                         vec!(("file_1".to_string(), "other2".to_string()))
                        );
     }
     #[test]
     fn test_compare_other3() {
-        compare_generic("ref_dump10.txt", vec!(("file_1".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
-                        "oth_dump10.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
-                                               ("other2".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
-                                               ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+        compare_generic("ref_dump10.txt", vec!(("file_1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
+                        "oth_dump10.txt", vec!(("other1".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                               ("other2".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string()),
+                                               ("other3".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
                         vec!(("file_1".to_string(), "other3".to_string()))
                        );
     }
     #[test]
     fn test_compare_several_other1() {
-        compare_generic("ref_dump11.txt", vec!(("file_1".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
-                        "oth_dump11.txt", vec!(("other1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
-                                               ("other2".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string()),
-                                               ("other3".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
+        compare_generic("ref_dump11.txt", vec!(("file_1".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
+                        "oth_dump11.txt", vec!(("other1".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string()),
+                                               ("other2".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
+                                               ("other3".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
                         vec!(("file_1".to_string(), "other2".to_string()), ("file_1".to_string(), "other3".to_string()))
                        );
     }

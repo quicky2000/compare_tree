@@ -24,7 +24,7 @@ pub struct Sha1Key {
 
 impl fmt::Display for Sha1Key {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.words.iter().map(|x| write!(f, "{:08X}", x)).rev().collect()
+        self.words.iter().map(|x| write!(f, "{:08X}", x)).collect()
     }
 }
 
@@ -39,7 +39,7 @@ impl Sha1Key {
             return Err(format!("Bad SHA1 string length {} vs 40", v.len()));
         }
         for (i, el) in result.words.iter_mut().enumerate() {
-            let slice = &v[32 - i * 8..40 - i * 8];
+            let slice = &v[i * 8..i * 8 + 8];
             let conversion_result = u32::from_str_radix(slice, 16);
             *el = match conversion_result {
                 Ok(x) => x,
@@ -282,12 +282,12 @@ mod test {
     #[test]
     fn test_sha1_key_display() {
         let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
-        assert_eq!(format!("{}", key_ref), "0000000400000003000000020000000100000000");
+        assert_eq!(format!("{}", key_ref), "0000000000000001000000020000000300000004");
     }
     #[test]
     fn test_sha1_from_string() {
         let key_ref = Sha1Key::new(0x0, 0x1, 0x2, 0x3, 0x4);
-        assert_eq!(key_ref, Sha1Key::from_string("0000000400000003000000020000000100000000").expect("Error during conversion"));
+        assert_eq!(key_ref, Sha1Key::from_string("0000000000000001000000020000000300000004").expect("Error during conversion"));
     }
     #[test]
     fn test_sha1_key_from_array() {
