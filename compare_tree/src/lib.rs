@@ -315,7 +315,7 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
         }
         let other_item = filetree_info::FileTreeInfo::from(&other_line)?;
         let other_len = other_item.name.chars().count();
-        if to_remove.iter().any(|(_, x)| { x.chars().count () <= other_len && x == &(other_item.name.chars().take(x.chars().count()).collect::<String>())}) {
+        if to_remove.iter().any(|(_, x)| { let removed = String::from(x) + "/"; removed.chars().count () <= other_len && &removed == &(other_item.name.chars().take(removed.chars().count()).collect::<String>())}) {
             other_line = consume(&mut other)?;
             continue;
         }
@@ -704,6 +704,16 @@ mod test {
                     "oth_dump13.txt", vec!(("example.wav".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string()),
                                            ("temper_in_°.txt".to_string(), "49584B5C027111E7A9F8F04BED3550A7FAA41DA4".to_string())),
                     vec!(("file_1".to_string(), "example.wav".to_string()))
+                       );
+    }
+    #[test]
+    fn test_compare_bad_in() {
+    compare_generic("ref_dump14.txt", vec!(("file_1".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string())
+                                          ,("file_2".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())
+                                          ),
+                    "oth_dump14.txt", vec!(("dup1".to_string(), "2CC944E46E5029A3AAFFE9554CD950C3C79694CC".to_string()),
+                                           ("dup12".to_string(), "E57CC94793F1A408226B070046C2D6253E108C4A".to_string())),
+                    vec!(("file_1".to_string(), "dup1".to_string()), ("file_2".to_string(), "dup12".to_string()))
                        );
     }
     use std::path::Path;
