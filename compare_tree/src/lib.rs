@@ -336,6 +336,32 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
     }
 }
 
+fn check_duplicated(filename: &str) -> Result<(), String> {
+        let file_result = File::open(&filename);
+        let file = match file_result {
+                Ok(f) => f,
+                Err(e) => return Err(format!("Unable to open file {} {}", filename, e))
+        };
+        let reader = BufReader::new(file);
+        let mut previous_filetree = filetree_info::FileTreeInfo { name: String::from("")
+                                             , height: 0
+                                             , nb_item: 0
+                                             , sha1: sha1::compute_sha1(vec!())
+                                             };
+        for line_result in reader.lines() {
+            let line = match line_result {
+                Ok(l) =>l,
+                Err(e) => return Err(format!("Unable to read line from file {} {}", filename, e))
+            };
+            let filetree_info = filetree_info::FileTreeInfo::from(&line)?;
+            if filetree_info.sha1 == previous_filetree.sha1 {
+                eprintln!("!!! Doublon {} <-> {}", previous_filetree.name, filetree_info.name);
+            }
+            previous_filetree = filetree_info;
+        };
+        Ok(())
+}
+
 fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<(String, String)>, String> {
     println!("==> Analyse");
     let mut to_remove = Vec::new();
@@ -349,6 +375,7 @@ fn compare(reference: &str, other: &str, height: u32) -> Result<Vec<(String, Str
         };
         let reader_ref = BufReader::new(file);
         let filename = split_name(other, i);
+        check_duplicated(&filename)?;
         let file_result = File::open(&filename);
         let file = match file_result {
                 Ok(f) => f,
