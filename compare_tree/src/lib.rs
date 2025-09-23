@@ -118,12 +118,14 @@ fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_i
 
 fn dump_name(name: & str) -> String {
     let mut filename = String::from(name);
+    filename = filename.replace("/", "_");
     filename.push_str("_dump.txt");
     return filename;
 }
 
 fn dump_dir(name: & str) -> String {
     let mut filename = String::from(name);
+    filename = filename.replace("/", "_");
     filename.push_str("_dumps");
     return filename;
 }
