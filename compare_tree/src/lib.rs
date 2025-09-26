@@ -28,6 +28,15 @@ use std::io::prelude::*;
 mod sha1;
 mod filetree_info;
 
+fn despecialise(name: &str) -> String {
+    let mut result = String::from(name);
+    for char in String::from("'` $()&;").chars() {
+        let replacement = String::from("\\") + &String::from(char);
+        result = result.replace(&char.to_string(), &replacement);
+    }
+    result
+}
+
 fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_info::FileTreeInfo, String> {
     let string_path = path.to_str().ok_or(format!("to_str() issue with {}", path.display()))?;
 
@@ -355,7 +364,7 @@ fn check_duplicated(filename: &str) -> Result<(), String> {
             };
             let filetree_info = filetree_info::FileTreeInfo::from(&line)?;
             if filetree_info.sha1 == previous_filetree.sha1 {
-                eprintln!("!!! Doublon {} <-> {}", previous_filetree.name, filetree_info.name);
+                eprintln!("!!! Doublon {} <-> {}", despecialise(&previous_filetree.name), despecialise(&filetree_info.name));
             }
             previous_filetree = filetree_info;
         };
@@ -417,7 +426,7 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     let result = compare_trees(&configuration.reference_path, &configuration.other_path)?;
 
     println!("==> Results");
-    result.iter().for_each(|(reference, other)| println!("{} TO REMOVE {}", reference, other));
+    result.iter().for_each(|(reference, other)| println!("{} TO REMOVE {}", reference, despecialise(other)));
 
     Ok(())
 }
