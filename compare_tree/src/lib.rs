@@ -27,20 +27,14 @@ use std::io::prelude::*;
 
 mod sha1;
 mod filetree_info;
+mod ct_utils;
+
+use crate::ct_utils::despecialise;
 
 #[derive(Debug, PartialEq)]
 enum UseMode {
     Print,
     Interactive
-}
-
-fn despecialise(name: &str) -> String {
-    let mut result = String::from(name);
-    for char in String::from("'` $()&;").chars() {
-        let replacement = String::from("\\") + &String::from(char);
-        result = result.replace(&char.to_string(), &replacement);
-    }
-    result
 }
 
 fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_info::FileTreeInfo, String> {
