@@ -28,8 +28,11 @@ use std::io::prelude::*;
 mod sha1;
 mod filetree_info;
 mod ct_utils;
+mod output_module;
+mod display_module;
+mod interactive_module;
 
-use crate::ct_utils::despecialise;
+use crate::output_module::OutputModule;
 
 #[derive(Debug, PartialEq)]
 enum UseMode {
@@ -345,7 +348,7 @@ fn compare_iter(mut reference: io::Lines<io::BufReader<File>> ,
     }
 }
 
-fn check_duplicated(filename: &str, mode: &UseMode) -> Result<(), String> {
+fn check_duplicated(filename: &str, output_mod: &Box<dyn OutputModule>) -> Result<(), String> {
         let file_result = File::open(&filename);
         let file = match file_result {
                 Ok(f) => f,
@@ -375,30 +378,7 @@ fn check_duplicated(filename: &str, mode: &UseMode) -> Result<(), String> {
                     Err(e) => return Err(format!("Error when trying to check if {} exists : {}", previous_filetree.name, e))
                 };
                 if exist_prev && exist_cur {
-                    eprintln!("!!! Doublon {} <-> {}", despecialise(&previous_filetree.name), despecialise(&filetree_info.name));
-                    if *mode == UseMode::Interactive {
-                        println!("What to do ? (rf/rs/s)");
-                        let mut answer = String::new();
-                        while answer == "" {
-                            io::stdin().read_line(&mut answer).expect("Failed to read line");
-                            let len = answer.chars().count();
-                            if len > 1 && answer.chars().nth(len - 1) == Some('\n') {
-                                answer = answer.chars().take(len - 1).collect::<String>();
-                            }
-                            println!("Your answer is '{}'", answer);
-                            if answer == "rf".to_string() {
-                                fs::remove_file(&previous_filetree.name).expect("Unable to remove file");
-                                break;
-                            }
-                            else if answer == "rs".to_string() {
-                                fs::remove_file(&filetree_info.name).expect("Unable to remove file");
-                                break;
-                            }
-                            else if answer == "s".to_string() {
-                                break;
-                            }
-                        }
-                    }
+                    output_mod.treat_internal_doublon(&previous_filetree.name, &filetree_info.name)
                 }
             }
             previous_filetree = filetree_info;
@@ -406,7 +386,7 @@ fn check_duplicated(filename: &str, mode: &UseMode) -> Result<(), String> {
         Ok(())
 }
 
-fn compare(reference: &str, other: &str, height: u32, mode: &UseMode) -> Result<Vec<(String, String)>, String> {
+fn compare(reference: &str, other: &str, height: u32, output_mod: &Box<dyn OutputModule>) -> Result<Vec<(String, String)>, String> {
     println!("==> Analyse");
     let mut to_remove = Vec::new();
     for i in (0..height + 1).rev() {
@@ -419,7 +399,7 @@ fn compare(reference: &str, other: &str, height: u32, mode: &UseMode) -> Result<
         };
         let reader_ref = BufReader::new(file);
         let filename = split_name(other, i);
-        check_duplicated(&filename, &mode)?;
+        check_duplicated(&filename, output_mod)?;
         let file_result = File::open(&filename);
         let file = match file_result {
                 Ok(f) => f,
@@ -431,7 +411,7 @@ fn compare(reference: &str, other: &str, height: u32, mode: &UseMode) -> Result<
     Ok(to_remove)
 }
 
-fn compare_trees(reference: &str, other: &str, mode: &UseMode) -> Result<Vec<(String, String)>, String> {
+fn compare_trees(reference: &str, other: &str, output_mod: &Box<dyn OutputModule>) -> Result<Vec<(String, String)>, String> {
     let height_ref = generate_dump(reference)?;
     let height_other = generate_dump(other)?;
     println!("==> Dump result {} vs {}", height_ref, height_other);
@@ -442,12 +422,17 @@ fn compare_trees(reference: &str, other: &str, mode: &UseMode) -> Result<Vec<(St
     generate_split(reference, height_ref)?;
     generate_split(other, height_other)?;
 
-    compare(reference, other, common_height, mode)
+    compare(reference, other, common_height, output_mod)
 }
 
 pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
     println!(" Reference path: '{}'", configuration.reference_path);
     println!("comparison path: '{}'", configuration.other_path);
+
+    let output_mod: Box<dyn OutputModule> = match configuration.mode {
+        UseMode::Print => Box::new(display_module::DisplayModule{}),
+        UseMode::Interactive => Box::new(interactive_module::InteractiveModule{})
+    };
 
     let result = check_directory(&configuration.reference_path);
     if result.is_err() {
@@ -458,51 +443,10 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
         return Err(result.err().unwrap().into());
     }
 
-    let result = compare_trees(&configuration.reference_path, &configuration.other_path, &configuration.mode)?;
+    let result = compare_trees(&configuration.reference_path, &configuration.other_path, &output_mod)?;
 
     println!("==> Results");
-    if configuration.mode == UseMode::Print {
-        result.iter().for_each(|(reference, other)| println!("{} TO REMOVE {}", reference, despecialise(other)));
-    }
-    else if configuration.mode == UseMode::Interactive {
-        'big_loop: for (reference, other) in result.iter() {
-            let exist_ref_result = fs::exists(&reference);
-            let exist_ref = match exist_ref_result {
-                Ok(r) => r,
-                Err(e) => return Err(format!("Error when trying to check if {} exists : {}", reference, e).into())
-            };
-            let exist_oth_result = fs::exists(&other);
-            let exist_oth = match exist_oth_result {
-                    Ok(r) => r,
-                    Err(e) => return Err(format!("Error when trying to check if {} exists : {}", other, e).into())
-                };
-
-            if exist_ref && exist_oth {
-                eprintln!("{} TO REMOVE {}", despecialise(&reference), despecialise(&other));
-                println!("rm {} ? (y/n/q)", despecialise(&other));
-                let mut answer = String::new();
-                while answer == "" {
-                    io::stdin().read_line(&mut answer).expect("Failed to read line");
-                    let len = answer.chars().count();
-                    if len > 1 && answer.chars().nth(len - 1) == Some('\n') {
-                        answer = answer.chars().take(len - 1).collect::<String>();
-                    }
-                    println!("Your answer is '{}'", answer);
-                    if answer == "y".to_string() {
-                        fs::remove_file(&other).expect("Unable to remove file");
-                        break;
-                    }
-                    else if answer == "n".to_string() {
-                        break;
-                    }
-                    else if answer == "q".to_string() {
-                        break 'big_loop;
-                    }
-                }
-            }
-        }
-    }
-
+    result.iter().all(|(reference, other)| output_mod.treat_duplicated(reference, other).expect("Error during treat_duplicated"));
 
     Ok(())
 }
@@ -869,9 +813,10 @@ mod test {
                                      ("similar/b.txt".to_string(), "This is a an other dummy file".to_string()),
                                      ("c.txt".to_string(), "This is a an other dummy file".to_string()),
                                     ));
+        let output_mod: Box<dyn OutputModule> = Box::new(display_module::DisplayModule{});
         assert_eq!(vec!(("ref3/dummy_dir1/dummy_dur2".to_string(), "oth3/similar".to_string()),
                         ("ref3/dummy_dir1/dummy_dur2/test2.txt".to_string(), "oth3/c.txt".to_string())
-                       ), compare_trees(ref_name, oth_name, &UseMode::Print).expect("Error during comparison"));
+                       ), compare_trees(ref_name, oth_name, &output_mod).expect("Error during comparison"));
         assert!(fs::remove_dir_all(ref_name).is_ok());
         assert!(fs::remove_dir_all(oth_name).is_ok());
         assert!(fs::remove_dir_all(dump_dir(ref_name)).is_ok());
@@ -891,7 +836,8 @@ mod test {
                                        ("similar/b.txt".to_string(), "This is a an other dummy file".to_string()),
                                        ("c.txt".to_string(), "This is a an other dummy file".to_string()),
                                       ));
-        assert_eq!(vec!(("ref4/dummy_dir1".to_string(), "oth4".to_string())), compare_trees(ref_name, oth_name, &UseMode::Print).expect("Error during comparison"));
+        let output_mod: Box<dyn OutputModule> = Box::new(display_module::DisplayModule{});
+        assert_eq!(vec!(("ref4/dummy_dir1".to_string(), "oth4".to_string())), compare_trees(ref_name, oth_name, &output_mod).expect("Error during comparison"));
         assert!(fs::remove_dir_all(ref_name).is_ok());
         assert!(fs::remove_dir_all(oth_name).is_ok());
         assert!(fs::remove_dir_all(dump_dir(ref_name)).is_ok());
@@ -913,7 +859,8 @@ mod test {
                                        ("similar_bis/a.txt".to_string(), "This is a dummy file".to_string()),
                                        ("similar_bis/b.txt".to_string(), "This is a an other dummy file".to_string()),
                                       ));
-        assert_eq!(vec!(("ref5/dummy_dir1".to_string(), "oth5/dir".to_string()), ("ref5/dummy_dir1/dummy_dur2".to_string(), "oth5/similar_bis".to_string())), compare_trees(ref_name, oth_name, &UseMode::Print).expect("Error during comparison"));
+        let output_mod: Box<dyn OutputModule> = Box::new(display_module::DisplayModule{});
+        assert_eq!(vec!(("ref5/dummy_dir1".to_string(), "oth5/dir".to_string()), ("ref5/dummy_dir1/dummy_dur2".to_string(), "oth5/similar_bis".to_string())), compare_trees(ref_name, oth_name, &output_mod).expect("Error during comparison"));
         assert!(fs::remove_dir_all(ref_name).is_ok());
         assert!(fs::remove_dir_all(oth_name).is_ok());
         assert!(fs::remove_dir_all(dump_dir(ref_name)).is_ok());
@@ -937,12 +884,13 @@ mod test {
                                        ("similar_bis/a.txt".to_string(), "This is a dummy file".to_string()),
                                        ("similar_bis/b.txt".to_string(), "This is a an other dummy file".to_string()),
                                       ));
+        let output_mod: Box<dyn OutputModule> = Box::new(display_module::DisplayModule{});
         assert_eq!(vec!(("ref6/dummy_dir1/dummy_dur2".to_string(), "oth6/similar_bis".to_string()),
                         ("ref6/dummy_dir1/dummy_dur2/test2.txt".to_string(), "oth6/dir/similar/b.txt".to_string()),
                         ("ref6/dummy_dir1/c.txt".to_string(), "oth6/dir/c.txt".to_string()),
                         ("ref6/dummy_dir1/break.txt".to_string(), "oth6/dir/similar/disturb.txt".to_string()),
                         ("ref6/dummy_dir1/dummy_dur2/test.txt".to_string(), "oth6/dir/similar/a.txt".to_string())
-                        ), compare_trees(ref_name, oth_name, &UseMode::Print).expect("Error during comparison"));
+                        ), compare_trees(ref_name, oth_name, &output_mod).expect("Error during comparison"));
         assert!(fs::remove_dir_all(ref_name).is_ok());
         assert!(fs::remove_dir_all(oth_name).is_ok());
         assert!(fs::remove_dir_all(dump_dir(ref_name)).is_ok());
