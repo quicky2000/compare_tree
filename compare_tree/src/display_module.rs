@@ -22,10 +22,10 @@ pub struct DisplayModule {
 }
 
 impl OutputModule for DisplayModule {
-      fn treat_internal_doublon(&self, first: &str, second: &str) {
+      fn treat_internal_doublon(&mut self, first: &str, second: &str) {
             eprintln!("!!! Doublon {} <-> {}", despecialise(first), despecialise(second));
       }
-      fn treat_duplicated(&self, reference: &str, other: &str) -> Result<bool, String> {
+      fn treat_duplicated(&mut self, reference: &str, other: &str) -> Result<bool, String> {
             eprintln!("{} TO REMOVE {}", reference, despecialise(other));
             Ok(true)
       }

@@ -24,7 +24,7 @@ pub struct InteractiveModule {
 }
 
 impl OutputModule for InteractiveModule {
-      fn treat_internal_doublon(&self, first: &str, second: &str) {
+      fn treat_internal_doublon(&mut self, first: &str, second: &str) {
             eprintln!("!!! Doublon {} <-> {}", first, second);
             println!("What to do ? (rf/rs/s)");
             let mut answer = String::new();
@@ -49,7 +49,7 @@ impl OutputModule for InteractiveModule {
             }
       }
 
-      fn treat_duplicated(&self, reference: &str, other: &str) -> Result<bool, String> {
+      fn treat_duplicated(&mut self, reference: &str, other: &str) -> Result<bool, String> {
             eprintln!("{} TO REMOVE {}", reference, other);
             let exist_ref_result = fs::exists(&reference);
             let exist_ref = match exist_ref_result {

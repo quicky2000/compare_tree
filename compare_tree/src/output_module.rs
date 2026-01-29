@@ -16,6 +16,6 @@
 */
 
 pub trait OutputModule {
-      fn treat_internal_doublon(&self, first: &str, second: &str);
-      fn treat_duplicated(&self, reference: &str, other: &str) -> Result<bool, String>;
+      fn treat_internal_doublon(& mut self, first: &str, second: &str);
+      fn treat_duplicated(&mut self, reference: &str, other: &str) -> Result<bool, String>;
 }
