@@ -31,13 +31,15 @@ mod ct_utils;
 mod output_module;
 mod display_module;
 mod interactive_module;
+mod batch_module;
 
 use crate::output_module::OutputModule;
 
 #[derive(Debug, PartialEq)]
 enum UseMode {
     Print,
-    Interactive
+    Interactive,
+    Batch
 }
 
 fn analyse_filetree(path: PathBuf, output: &mut impl Write) -> Result<filetree_info::FileTreeInfo, String> {
@@ -431,7 +433,8 @@ pub fn run(configuration: &Config) -> Result<(), Box<dyn Error>> {
 
     let mut output_mod: Box<dyn OutputModule> = match configuration.mode {
         UseMode::Print => Box::new(display_module::DisplayModule{}),
-        UseMode::Interactive => Box::new(interactive_module::InteractiveModule{})
+        UseMode::Interactive => Box::new(interactive_module::InteractiveModule{}),
+        UseMode::Batch => Box::new(batch_module::BatchModule::new()),
     };
 
     let result = check_directory(&configuration.reference_path);
@@ -477,6 +480,9 @@ impl Config {
             }
             else if value == "-p" {
                 UseMode::Print
+            }
+            else if value == "-b" {
+                UseMode::Batch
             }
             else {
                 return Err("Error with 3rd argument");
