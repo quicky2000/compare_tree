@@ -8,5 +8,9 @@ This tool detect tree duplications between 2 trees and will indicate if some tre
 
 ## How to use it
 
-`./compare_tree [reference directory] [other directory]`
+`./compare_tree <reference directory> <other director> [-p | -i | -b]`
+
+* -p : print mode, display information about duplicated
+* -i : interactive mode, user is asked which file to remove
+* -b : generate a script that will remove from other directory duplicated files that are in reference directory
 
