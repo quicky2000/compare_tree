@@ -26,22 +26,27 @@ pub struct BatchModule {
       output_file: BufWriter<File>
 }
 
+fn dump_duplicated(output_file: &mut BufWriter<File>, reference: &str, other: &str) -> Result<(), std::io::Error> {
+            let keep = despecialise(reference);
+            let remove = despecialise(other);
+            output_file.write(format!("if [ ! -L {} -a -f {} ]\n", keep, keep).as_bytes())?;
+            output_file.write("then\n".as_bytes())?;
+            output_file.write(format!("    rm {}\n", remove).as_bytes())?;
+            output_file.write(format!("elif [ -L {}  ]\n", keep).as_bytes())?;
+            output_file.write("then\n".as_bytes())?;
+            output_file.write(format!(r#"    echo "{}" is a link{}"#, keep, "\n").as_bytes())?;
+            output_file.write("else\n".as_bytes())?;
+            output_file.write(format!(r#"    echo "{}" do not exist{}"#, keep, "\n").as_bytes())?;
+            output_file.write("fi\n\n".as_bytes())?;
+            Ok(())
+}
+
 impl OutputModule for BatchModule {
       fn treat_internal_doublon(&mut self, first: &str, second: &str) {
             self.output_file.write(format!("# Doublon {} <-> {}\n\n", despecialise(first), despecialise(second)).as_bytes()).expect(format!("Unable to write in file {}", self.filename).as_str());
       }
       fn treat_duplicated(&mut self, reference: &str, other: &str) -> Result<bool, String> {
-            let keep = despecialise(reference);
-            let remove = despecialise(other);
-            self.output_file.write(format!("if [ ! -L {} -a -f {} ]\n", keep, keep).as_bytes()).expect(format!("Unable to write in file {}", self.filename).as_str());
-            self.output_file.write("then\n".as_bytes()).expect(format!("Unable to write in file {}", self.filename).as_str());
-            self.output_file.write(format!("    rm {}\n", remove).as_bytes()).expect(format!("Unable to write in file {}", self.filename).as_str());
-            self.output_file.write(format!("elif [ -L {}  ]\n", keep).as_bytes()).expect(format!("Unable to write in file {}", self.filename).as_str());
-            self.output_file.write("then\n".as_bytes()).expect(format!("Unable to write in file {}", self.filename).as_str());
-            self.output_file.write(format!(r#"    echo "{}" is a link{}"#, keep, "\n").as_bytes()).expect(format!("Unable to write in file {}", self.filename).as_str());
-            self.output_file.write("else\n".as_bytes()).expect(format!("Unable to write in file {}", self.filename).as_str());
-            self.output_file.write(format!(r#"    echo "{}" do not exist{}"#, keep, "\n").as_bytes()).expect(format!("Unable to write in file {}", self.filename).as_str());
-            self.output_file.write("fi\n\n".as_bytes()).expect(format!("Unable to write in file {}", self.filename).as_str());
+            dump_duplicated(&mut self.output_file, reference, other).expect(format!("Error during write of file {}", self.filename).as_str());
             Ok(true)
       }
 }
