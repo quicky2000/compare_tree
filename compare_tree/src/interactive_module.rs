@@ -23,7 +23,19 @@ use crate::ct_utils::despecialise;
 pub struct InteractiveModule {
 }
 
+fn my_remove(name: &str) {
+      let md = fs::metadata(name).unwrap();
+      if md.is_dir() {
+            fs::remove_dir_all(&name).expect("Unable to remove directory");
+      }
+      else {
+            fs::remove_file(&name).expect("Unable to remove file");
+      }
+}
+
 impl OutputModule for InteractiveModule {
+
+
       fn treat_internal_doublon(&mut self, first: &str, second: &str) {
             eprintln!("!!! Doublon {} <-> {}", first, second);
             println!("What to do ? (rf/rs/s)");
@@ -36,11 +48,11 @@ impl OutputModule for InteractiveModule {
                   }
                   println!("Your answer is '{}'", answer);
                   if answer == "rf".to_string() {
-                        fs::remove_file(&first).expect("Unable to remove file");
+                        my_remove(&first);
                         break;
                   }
                   else if answer == "rs".to_string() {
-                        fs::remove_file(&second).expect("Unable to remove file");
+                        my_remove(&second);
                         break;
                   }
                   else if answer == "s".to_string() {
@@ -74,7 +86,7 @@ impl OutputModule for InteractiveModule {
                         }
                         println!("Your answer is '{}'", answer);
                         if answer == "y".to_string() {
-                              fs::remove_file(&other).expect("Unable to remove file");
+                              my_remove(&other);
                               break;
                         }
                         else if answer == "n".to_string() {
